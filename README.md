@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Attenza 🚀
 
 Attenza is a modern, AI-powered attendance management system designed for universities to simplify and automate classroom attendance. Instead of traditional roll calls, students verify their attendance by taking a real-time selfie within the classroom. The system uses facial verification, GPS location validation, and timestamp recording to ensure secure and accurate attendance.
@@ -62,3 +63,7 @@ npm run web
 ---
 
 * **Layout:** Built responsively. If run on a desktop web browser or tablet, it renders a split-pane sidebar on the left and content on the right. If run on a phone screen, it displays a slide-out drawer menu.
+=======
+# Attenza
+Attendance System for Uni Students
+>>>>>>> 28b037f (Initial commit)
