@@ -1,40 +1,26 @@
-# ByteConnect (IT Department Edition) 🚀
+# Attenza 🚀
 
-ByteConnect is an ultra-modern, Discord- and Reddit-inspired mobile application built with **React Native (TypeScript)** and **Expo**. It is designed exclusively for a single IT/CS department to connect students, staff, and organizers in one unified, database-free environment utilizing local AsyncStorage persistence.
+Attenza is a modern, AI-powered attendance management system designed for universities to simplify and automate classroom attendance. Instead of traditional roll calls, students verify their attendance by taking a real-time selfie within the classroom. The system uses facial verification, GPS location validation, and timestamp recording to ensure secure and accurate attendance.
+
+Built with a clean, user-friendly interface, Attenza provides students with an easy way to check in while giving professors powerful tools to monitor attendance, view reports, and manage classes efficiently.
 
 ## 📱 Features
 
-1. **📢 Official Announcements:** Verified department broadcasts with verified author roles and pin states.
-2. **💬 Discord-style Chat:** Real-time channels (`#chat-general`, `#chat-programming`, `#chat-random`) with native-feeling bubble layouts and profile badges.
-3. **❓ Reddit-style Q&A:** A forum for programming questions featuring tag filters, upvote/downvote tallies, threaded comment replies, and monospace formatting for code blocks.
-4. **📝 CS Cheat Sheets:** Searchable quick-reference cards with syntax highlights for Git, SQL, Python, and more.
-5. **🔍 Lost & Found:** A status-tracked dashboard (Active/Resolved) with categories for Lost vs Found, contact details, and locations.
-6. **💼 Internships Board:** Curated, filterable IT internship postings with requirements lists and direct application redirects.
-7. **📅 Events Calendar:** Department workshops, hackathons, and guest seminars with calendar timelines and active **RSVP counters**.
-8. **🕵️ Anonymous Posting:** Global anonymous toggles on Chat messages, Q&A threads, and Lost & Found reports. When activated, the app dynamically generates a fun, IT-themed pseudonym (e.g. `PixelHacker`, `BinaryWizard`, `CyberGhost`).
+1. 📸 Real-time selfie attendance
+2. 📍 GPS location verification
+3. 🕒 Automatic date and time recording
+4. 👤 Face verification for identity confirmation
+5. 👨‍🏫 Professor dashboard for attendance management
+6. 👨‍🎓 Student attendance history
+7. 📊 Attendance analytics and reports
+8. 🔔 Notifications and attendance reminders
+9. 📱 Responsive and modern user interface
+10. 🔒 Secure authentication and user management
 
 ---
 
-## 🛠️ Project Structure
-
-```
-CampusConnect/
-├── App.tsx                   # Central driver (layout, navigation drawer, state sync)
-├── src/
-│   ├── data/
-│   │   ├── mockData.ts       # Realistic initial datasets & interfaces
-│   │   └── storage.ts        # AsyncStorage wrappers for data load/save & pseudonyms
-│   └── screens/
-│       ├── AnnouncementsScreen.tsx
-│       ├── ChatScreen.tsx
-│       ├── ForumsScreen.tsx
-│       ├── CheatSheetsScreen.tsx
-│       ├── LostFoundScreen.tsx
-│       ├── InternshipsScreen.tsx
-│       └── EventsScreen.tsx
-├── package.json
-└── tsconfig.json
-```
+## Goals
+Attenza aims to eliminate manual attendance tracking, reduce fraudulent check-ins, and provide a faster, smarter, and more reliable attendance experience for both students and faculty.
 
 ---
 
@@ -75,7 +61,4 @@ npm run web
 
 ---
 
-## 🎨 Styling & Design Aesthetics
-* **Theme:** Discord Dark Slate (`#313338`) combined with Reddit Dark Card styling (`#1a1a1b`).
-* **Accents:** Neon Indigo (`#5865f2`) for Discord-themed views, Reddit Coral (`#ff4500`) for Q&A nodes, and Cyan (`#00b0f4`) for technical categories.
 * **Layout:** Built responsively. If run on a desktop web browser or tablet, it renders a split-pane sidebar on the left and content on the right. If run on a phone screen, it displays a slide-out drawer menu.
