@@ -74,6 +74,18 @@ const generateTimeOptions = () => {
 };
 const TIME_OPTIONS = generateTimeOptions();
 
+const DotGrid = () => (
+  <View style={styles.dotGridContainer}>
+    {Array.from({ length: 7 }).map((_, r) => (
+      <View key={r} style={styles.dotGridRow}>
+        {Array.from({ length: 4 }).map((_, c) => (
+          <View key={c} style={styles.dotGridDot} />
+        ))}
+      </View>
+    ))}
+  </View>
+);
+
 export default function AuthScreen({ onLoginSuccess }: Props) {
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [role, setRole] = useState<'professor' | 'student'>('student');
@@ -274,7 +286,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
         const profile: StudentProfile = {
           studentId: usernameId.trim(),
           studentName: name.trim(),
-          avatarColor: '#0066cc',
+          avatarColor: '#1E5EFF',
           year: yearGroup,
           section: section,
           isIrregular: isIrregular,
@@ -300,7 +312,10 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
   // Render Login view
   if (authMode === 'login') {
     return (
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scrollStyle} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <View style={styles.backgroundSweep} />
+        <View style={styles.rightCircleBackground} />
+        <DotGrid />
         <View style={styles.brandingHeader}>
           <Image source={require('../../assets/logo.png')} style={styles.brandingLogoImage} resizeMode="contain" />
           <Text style={styles.brandingSubText}>Secure Real-time Attendance Engine</Text>
@@ -329,7 +344,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
           <TextInput
             style={styles.textInput}
             placeholder={role === 'student' ? "e.g. 2024-0518" : "e.g. prof1"}
-            placeholderTextColor="#86868b"
+            placeholderTextColor="#6B7280"
             autoCapitalize="none"
             value={usernameId}
             onChangeText={setUsernameId}
@@ -339,7 +354,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
           <TextInput
             style={styles.textInput}
             placeholder="••••••••"
-            placeholderTextColor="#86868b"
+            placeholderTextColor="#6B7280"
             secureTextEntry={true}
             autoCapitalize="none"
             value={password}
@@ -362,10 +377,12 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
     );
   }
 
-  // Render Signup Step 1: Credentials
   if (signupStep === 1) {
     return (
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scrollStyle} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <View style={styles.backgroundSweep} />
+        <View style={styles.rightCircleBackground} />
+        <DotGrid />
         <View style={styles.brandingHeader}>
           <Image source={require('../../assets/logo.png')} style={styles.brandingLogoImage} resizeMode="contain" />
           <Text style={styles.brandingSubText}>Create your secure account</Text>
@@ -397,7 +414,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
           <TextInput
             style={styles.textInput}
             placeholder="e.g. Dr. Jane Smith"
-            placeholderTextColor="#86868b"
+            placeholderTextColor="#6B7280"
             value={name}
             onChangeText={setName}
           />
@@ -406,7 +423,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
           <TextInput
             style={styles.textInput}
             placeholder={role === 'student' ? "e.g. 2024-0518" : "e.g. prof1"}
-            placeholderTextColor="#86868b"
+            placeholderTextColor="#6B7280"
             autoCapitalize="none"
             value={usernameId}
             onChangeText={setUsernameId}
@@ -416,7 +433,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
           <TextInput
             style={styles.textInput}
             placeholder="e.g. name@university.edu"
-            placeholderTextColor="#86868b"
+            placeholderTextColor="#6B7280"
             keyboardType="email-address"
             autoCapitalize="none"
             value={email}
@@ -427,7 +444,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
           <TextInput
             style={styles.textInput}
             placeholder="••••••••"
-            placeholderTextColor="#86868b"
+            placeholderTextColor="#6B7280"
             secureTextEntry={true}
             autoCapitalize="none"
             value={password}
@@ -446,10 +463,12 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
     );
   }
 
-  // Render Signup Step 2: Student Profile Config
   if (role === 'student' && signupStep === 2) {
     return (
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scrollStyle} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <View style={styles.backgroundSweep} />
+        <View style={styles.rightCircleBackground} />
+        <DotGrid />
         <View style={styles.brandingHeader}>
           <Image source={require('../../assets/logo.png')} style={styles.brandingLogoImage} resizeMode="contain" />
           <Text style={styles.brandingSubText}>Complete Student Profile</Text>
@@ -538,7 +557,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
             <TextInput
               style={[styles.textInput, { marginBottom: 0 }]}
               placeholder="Search Taft Avenue, UST, Katipunan..."
-              placeholderTextColor="#86868b"
+              placeholderTextColor="#6B7280"
               value={homeAddress}
               onChangeText={handleHomeAddressChange}
             />
@@ -576,7 +595,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
             <Switch
               value={hasSecondAddress}
               onValueChange={setHasSecondAddress}
-              trackColor={{ false: '#e5e7eb', true: '#0066cc' }}
+              trackColor={{ false: '#e5e7eb', true: '#1E5EFF' }}
               thumbColor="#ffffff"
               style={Platform.OS === 'web' ? { transform: [{ scale: 0.8 }] } as any : {}}
             />
@@ -590,7 +609,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
                 <TextInput
                   style={[styles.textInput, { marginBottom: 0 }]}
                   placeholder="Search apartment or boarding coordinates..."
-                  placeholderTextColor="#86868b"
+                  placeholderTextColor="#6B7280"
                   value={secondAddress}
                   onChangeText={handleSecondAddressChange}
                 />
@@ -630,7 +649,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
             <Switch
               value={isIrregular}
               onValueChange={setIsIrregular}
-              trackColor={{ false: '#e5e7eb', true: '#ff9500' }}
+              trackColor={{ false: '#e5e7eb', true: '#F59E0B' }}
               thumbColor="#ffffff"
               style={Platform.OS === 'web' ? { transform: [{ scale: 0.8 }] } as any : {}}
             />
@@ -657,7 +676,10 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
 
   // Render Signup Step 2: Professor Class Workload config (Course and Department)
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.scrollStyle} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <View style={styles.backgroundSweep} />
+      <View style={styles.rightCircleBackground} />
+      <DotGrid />
       <View style={styles.brandingHeader}>
         <Image source={require('../../assets/logo.png')} style={styles.brandingLogoImage} resizeMode="contain" />
         <Text style={styles.brandingSubText}>Semester Workload Setup</Text>
@@ -707,7 +729,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
           <TextInput
             style={styles.textInput}
             placeholder="e.g. IT 204 (Mobile Application Development)"
-            placeholderTextColor="#86868b"
+            placeholderTextColor="#6B7280"
             value={newSubName}
             onChangeText={setNewSubName}
           />
@@ -716,7 +738,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
           <TextInput
             style={styles.textInput}
             placeholder="e.g. IT 204"
-            placeholderTextColor="#86868b"
+            placeholderTextColor="#6B7280"
             value={newSubCode}
             onChangeText={setNewSubCode}
           />
@@ -977,10 +999,11 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
 
 const styles = StyleSheet.create({
   container: {
+    flexGrow: 1,
     paddingHorizontal: 24,
     paddingTop: 40,
     paddingBottom: 60,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#ECF2FD',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -991,7 +1014,7 @@ const styles = StyleSheet.create({
   brandingLogoText: {
     fontSize: 28,
     fontWeight: '900',
-    color: '#0066cc',
+    color: '#1E5EFF',
     letterSpacing: -1,
   },
   brandingLogoImage: {
@@ -1002,14 +1025,14 @@ const styles = StyleSheet.create({
   },
   brandingSubText: {
     fontSize: 12,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 4,
     fontWeight: '600',
   },
   authCard: {
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 16,
     padding: 24,
     width: '100%',
@@ -1023,7 +1046,7 @@ const styles = StyleSheet.create({
   cardHeading: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
     marginBottom: 16,
   },
   stepHeaderRow: {
@@ -1035,14 +1058,14 @@ const styles = StyleSheet.create({
   stepIndicatorLabel: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#86868b',
+    color: '#6B7280',
     textTransform: 'uppercase',
   },
   infoLockNotice: {
     fontSize: 11,
-    color: '#0066cc',
-    backgroundColor: '#0066cc08',
-    borderColor: '#0066cc30',
+    color: '#1E5EFF',
+    backgroundColor: '#1E5EFF08',
+    borderColor: '#1E5EFF30',
     borderWidth: 0.5,
     borderRadius: 8,
     padding: 12,
@@ -1050,7 +1073,7 @@ const styles = StyleSheet.create({
   },
   noticeTextBold: {
     fontWeight: '900',
-    color: '#0066cc',
+    color: '#1E5EFF',
     fontSize: 11,
     marginBottom: 4,
   },
@@ -1083,15 +1106,15 @@ const styles = StyleSheet.create({
   roleBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#86868b',
+    color: '#6B7280',
   },
   roleBtnTextActive: {
-    color: '#1d1d1f',
+    color: '#111827',
   },
   inputLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#86868b',
+    color: '#6B7280',
     textTransform: 'uppercase',
     marginTop: 12,
     marginBottom: 6,
@@ -1100,15 +1123,15 @@ const styles = StyleSheet.create({
   textInput: {
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 8,
     padding: 12,
-    color: '#1d1d1f',
+    color: '#111827',
     fontSize: 13,
     marginBottom: 12,
   },
   primaryBtn: {
-    backgroundColor: '#0066cc',
+    backgroundColor: '#1E5EFF',
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
@@ -1125,10 +1148,10 @@ const styles = StyleSheet.create({
   },
   switchModeText: {
     fontSize: 12,
-    color: '#86868b',
+    color: '#6B7280',
   },
   switchModeAccent: {
-    color: '#0066cc',
+    color: '#1E5EFF',
     fontWeight: '700',
   },
   formSplitRow: {
@@ -1148,7 +1171,7 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 8,
     maxHeight: 180,
     overflow: 'hidden',
@@ -1161,20 +1184,20 @@ const styles = StyleSheet.create({
   },
   googlePoweredLabel: {
     fontSize: 8,
-    color: '#86868b',
+    color: '#6B7280',
     fontWeight: '800',
     textTransform: 'uppercase',
     paddingHorizontal: 12,
     paddingVertical: 6,
     backgroundColor: '#f4f5f6',
     borderBottomWidth: 0.5,
-    borderBottomColor: '#eaeaea',
+    borderBottomColor: '#E5E7EB',
   },
   suggestionItem: {
     flexDirection: 'row',
     padding: 12,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#f4f4f4',
+    borderBottomColor: '#E5E7EB',
     alignItems: 'center',
     gap: 8,
   },
@@ -1183,12 +1206,12 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     fontSize: 11,
-    color: '#1d1d1f',
+    color: '#111827',
     fontWeight: '700',
   },
   coordsSub: {
     fontSize: 9,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 2,
   },
   toggleRow: {
@@ -1199,18 +1222,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     backgroundColor: '#f4f5f6',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 8,
     padding: 12,
   },
   toggleLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   toggleSubText: {
     fontSize: 9,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 2,
   },
   btnRow: {
@@ -1222,13 +1245,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f4f5f6',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
   },
   backBtnText: {
-    color: '#1d1d1f',
+    color: '#111827',
     fontWeight: '700',
     fontSize: 13,
   },
@@ -1239,7 +1262,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
@@ -1247,22 +1270,22 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   dropdownTriggerActive: {
-    borderColor: '#0066cc',
+    borderColor: '#1E5EFF',
     borderWidth: 1.5,
   },
   dropdownTriggerText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   dropdownChevron: {
     fontSize: 10,
-    color: '#86868b',
+    color: '#6B7280',
   },
   dropdownListInline: {
     backgroundColor: '#ffffff',
     borderWidth: 0.5,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 8,
     marginTop: -4,
     marginBottom: 10,
@@ -1272,30 +1295,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#f4f4f4',
+    borderBottomColor: '#E5E7EB',
   },
   dropdownItemInlineActive: {
-    backgroundColor: '#0066cc08',
+    backgroundColor: '#1E5EFF08',
   },
   dropdownItemTextInline: {
     fontSize: 12,
-    color: '#1d1d1f',
+    color: '#111827',
   },
   dropdownTextActiveInline: {
-    color: '#0066cc',
+    color: '#1E5EFF',
     fontWeight: '700',
   },
   // Professor workload builder specific styles
   wizardSubText: {
     fontSize: 12,
-    color: '#86868b',
+    color: '#6B7280',
     marginBottom: 12,
     lineHeight: 16,
   },
   sectionHeader: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#86868b',
+    color: '#6B7280',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
@@ -1303,7 +1326,7 @@ const styles = StyleSheet.create({
   },
   emptySubjectsLabel: {
     fontSize: 12,
-    color: '#86868b',
+    color: '#6B7280',
     fontStyle: 'italic',
     paddingVertical: 8,
   },
@@ -1314,8 +1337,8 @@ const styles = StyleSheet.create({
   subjectWorkloadCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0066cc05',
-    borderColor: '#0066cc20',
+    backgroundColor: '#1E5EFF05',
+    borderColor: '#1E5EFF20',
     borderWidth: 1,
     borderRadius: 8,
     padding: 12,
@@ -1323,31 +1346,31 @@ const styles = StyleSheet.create({
   subWorkloadCode: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#0066cc',
+    color: '#1E5EFF',
   },
   subWorkloadName: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1d1d1f',
+    color: '#111827',
     marginTop: 2,
   },
   subWorkloadMeta: {
     fontSize: 10,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 4,
   },
   subWorkloadRemoveBtn: {
     padding: 8,
   },
   removeText: {
-    color: '#ff3b30',
+    color: '#EF4444',
     fontWeight: 'bold',
     fontSize: 13,
   },
   subjectBuilderContainer: {
     backgroundColor: '#f4f5f6',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -1355,13 +1378,13 @@ const styles = StyleSheet.create({
   builderTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
     marginBottom: 12,
   },
   timeSubLabel: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#86868b',
+    color: '#6B7280',
     textTransform: 'uppercase',
     marginTop: 4,
     letterSpacing: 0.5,
@@ -1369,15 +1392,57 @@ const styles = StyleSheet.create({
   builderAddBtn: {
     backgroundColor: '#ffffff',
     borderWidth: 1.5,
-    borderColor: '#0066cc',
+    borderColor: '#1E5EFF',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
     marginTop: 10,
   },
   builderAddBtnText: {
-    color: '#0066cc',
+    color: '#1E5EFF',
     fontWeight: '800',
     fontSize: 13,
+  },
+  // Background Motifs Styles
+  backgroundSweep: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '65%',
+    backgroundColor: '#ECF2FD',
+    borderTopLeftRadius: 280,
+    zIndex: -1,
+  },
+  rightCircleBackground: {
+    position: 'absolute',
+    top: 60,
+    right: -80,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: '#EAF2FF',
+    zIndex: -1,
+  },
+  dotGridContainer: {
+    position: 'absolute',
+    top: 140,
+    left: 20,
+    zIndex: -1,
+    opacity: 0.5,
+  },
+  dotGridRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  dotGridDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#E5E7EB',
+  },
+  scrollStyle: {
+    backgroundColor: '#ECF2FD',
   },
 });

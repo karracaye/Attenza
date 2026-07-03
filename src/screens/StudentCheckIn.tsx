@@ -364,7 +364,7 @@ export default function StudentCheckIn({
               <Text style={styles.summaryItem}>📚 Subject: <Text style={styles.summaryVal}>{selectedGeneralSubjectCode}</Text></Text>
               <Text style={styles.summaryItem}>📅 Date Filed: <Text style={styles.summaryVal}>Today (Waiver Active)</Text></Text>
               <Text style={styles.summaryItem}>📝 Reason: <Text style={styles.summaryVal}>{excuseReason}</Text></Text>
-              <Text style={styles.summaryItem}>📎 Attachment: <Text style={[styles.summaryVal, { color: '#0066cc', fontWeight: 'bold' }]}>{selectedFile}</Text></Text>
+              <Text style={styles.summaryItem}>📎 Attachment: <Text style={[styles.summaryVal, { color: '#1E5EFF', fontWeight: 'bold' }]}>{selectedFile}</Text></Text>
             </View>
 
             <TouchableOpacity style={styles.doneBtn} onPress={() => { setGeneralExcuseSuccess(false); setExcuseReason(''); setSelectedFile(''); setExcuseAttachmentUri(''); setShowWaiverForm(false); }}>
@@ -445,7 +445,7 @@ export default function StudentCheckIn({
           <TextInput
             style={styles.tokenInput}
             placeholder="e.g. Medical Checkup, Official Event, Family Urgency"
-            placeholderTextColor="#86868b"
+            placeholderTextColor="#6B7280"
             value={excuseReason}
             onChangeText={setExcuseReason}
           />
@@ -504,7 +504,7 @@ export default function StudentCheckIn({
           ) : null}
 
           <TouchableOpacity 
-            style={[styles.submitBtn, { backgroundColor: '#0066cc', marginTop: 24 }]} 
+            style={[styles.submitBtn, { backgroundColor: '#1E5EFF', marginTop: 24 }]} 
             onPress={handleGeneralExcuseSubmit}
             disabled={submittingExcuse}
           >
@@ -539,13 +539,13 @@ export default function StudentCheckIn({
             <Text style={styles.summaryItem}>👤 Student: <Text style={styles.summaryVal}>{studentProfile.studentName}</Text></Text>
             <Text style={styles.summaryItem}>🏫 Room: <Text style={styles.summaryVal}>{activeSession.isOnline ? 'Remote / Online' : activeSession.classroomName}</Text></Text>
             <Text style={styles.summaryItem}>🕒 Timestamp: <Text style={styles.summaryVal}>Just now</Text></Text>
-            <Text style={styles.summaryItem}>⏰ Arrival Status: <Text style={[styles.summaryVal, { fontWeight: 'bold', color: isExcuse ? '#0066cc' : (checkInStatus === 'LATE' ? '#ff9500' : '#34c759') }]}>
+            <Text style={styles.summaryItem}>⏰ Arrival Status: <Text style={[styles.summaryVal, { fontWeight: 'bold', color: isExcuse ? '#1E5EFF' : (checkInStatus === 'LATE' ? '#F59E0B' : '#22C55E') }]}>
               {isExcuse ? 'EXCUSED' : (checkInStatus === 'LATE' ? 'LATE' : 'ON TIME')}
             </Text></Text>
             {isExcuse ? (
               <>
                 <Text style={styles.summaryItem}>📝 Reason: <Text style={styles.summaryVal}>{excuseReason}</Text></Text>
-                <Text style={styles.summaryItem}>📎 Attached File: <Text style={[styles.summaryVal, { color: '#0066cc', fontWeight: 'bold' }]}>{selectedFile}</Text></Text>
+                <Text style={styles.summaryItem}>📎 Attached File: <Text style={[styles.summaryVal, { color: '#1E5EFF', fontWeight: 'bold' }]}>{selectedFile}</Text></Text>
               </>
             ) : (
               <>
@@ -646,7 +646,7 @@ export default function StudentCheckIn({
                 <TextInput
                   style={styles.tokenInput}
                   placeholder="e.g. CS302_LOGS_83A"
-                  placeholderTextColor="#86868b"
+                  placeholderTextColor="#6B7280"
                   autoCapitalize="characters"
                   value={qrInput}
                   onChangeText={setQrInput}
@@ -674,7 +674,7 @@ export default function StudentCheckIn({
 
                 <View style={styles.selfieViewfinder}>
                   {capturing ? (
-                    <ActivityIndicator size="large" color="#0066cc" />
+                    <ActivityIndicator size="large" color="#1E5EFF" />
                   ) : selfiePath ? (
                     <View style={styles.selfiePreview}>
                       <Text style={styles.selfieIconLarge}>✅👤</Text>
@@ -771,7 +771,7 @@ export default function StudentCheckIn({
                 <View style={styles.locationDisplayBox}>
                   <Text style={styles.locDisplayHeader}>Captured Coordinates:</Text>
                   {checkingGps ? (
-                    <ActivityIndicator size="small" color="#0066cc" />
+                    <ActivityIndicator size="small" color="#1E5EFF" />
                   ) : (
                     <>
                       <Text style={styles.coordinatesText}>
@@ -824,7 +824,7 @@ export default function StudentCheckIn({
             <TextInput
               style={styles.tokenInput}
               placeholder="e.g. University Athletic Meet, Dean's Seminar, Medical Leave"
-              placeholderTextColor="#86868b"
+              placeholderTextColor="#6B7280"
               value={excuseReason}
               onChangeText={setExcuseReason}
             />
@@ -896,7 +896,7 @@ export default function StudentCheckIn({
             ) : null}
 
             <TouchableOpacity 
-              style={[styles.submitBtn, { backgroundColor: '#0066cc', marginTop: 24 }]} 
+              style={[styles.submitBtn, { backgroundColor: '#1E5EFF', marginTop: 24 }]} 
               onPress={handleSubmitExcuse}
               disabled={submittingExcuse}
             >
@@ -922,7 +922,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
@@ -935,11 +935,11 @@ const styles = StyleSheet.create({
   noSessionTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   noSessionSub: {
     fontSize: 11,
-    color: '#86868b',
+    color: '#6B7280',
     textAlign: 'center',
     marginTop: 6,
     lineHeight: 16,
@@ -956,7 +956,7 @@ const styles = StyleSheet.create({
   sessionClass: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   deliveryPill: {
     paddingHorizontal: 6,
@@ -965,26 +965,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   pillBlue: {
-    backgroundColor: '#0066cc15',
-    borderColor: '#0066cc',
+    backgroundColor: '#1E5EFF15',
+    borderColor: '#1E5EFF',
   },
   pillOrange: {
-    backgroundColor: '#ff950015',
-    borderColor: '#ff9500',
+    backgroundColor: '#F59E0B15',
+    borderColor: '#F59E0B',
   },
   deliveryPillText: {
     fontSize: 8,
     fontWeight: '900',
   },
   textBlue: {
-    color: '#0066cc',
+    color: '#1E5EFF',
   },
   textOrange: {
-    color: '#ff9500',
+    color: '#F59E0B',
   },
   sessionRoom: {
     fontSize: 12,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 5,
   },
   // Selection Mode Styles
@@ -992,18 +992,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     padding: 20,
   },
   selectTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
     textAlign: 'center',
   },
   selectSubtitle: {
     fontSize: 11,
-    color: '#86868b',
+    color: '#6B7280',
     textAlign: 'center',
     marginTop: 6,
     lineHeight: 16,
@@ -1016,14 +1016,14 @@ const styles = StyleSheet.create({
   optionSelectBtn: {
     backgroundColor: '#f4f5f6',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 10,
     padding: 16,
     alignItems: 'center',
   },
   optionSelectExcuseBtn: {
-    borderColor: '#0066cc50',
-    backgroundColor: '#0066cc05',
+    borderColor: '#1E5EFF50',
+    backgroundColor: '#1E5EFF05',
   },
   optionSelectEmoji: {
     fontSize: 24,
@@ -1032,11 +1032,11 @@ const styles = StyleSheet.create({
   optionSelectLabel: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   optionSelectDesc: {
     fontSize: 10,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 4,
     textAlign: 'center',
   },
@@ -1044,7 +1044,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     padding: 16,
     marginBottom: 14,
   },
@@ -1057,12 +1057,12 @@ const styles = StyleSheet.create({
   checklistTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   backSelectLink: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#ff3b30',
+    color: '#EF4444',
   },
   stepGrid: {
     flexDirection: 'row',
@@ -1074,25 +1074,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#f4f5f6',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     paddingVertical: 8,
     paddingHorizontal: 10,
     borderRadius: 8,
     gap: 6,
   },
   stepItemActive: {
-    borderColor: '#0066cc',
-    backgroundColor: '#0066cc08',
+    borderColor: '#1E5EFF',
+    backgroundColor: '#1E5EFF08',
   },
   stepItemDone: {
-    backgroundColor: '#34c75908',
-    borderColor: '#34c759',
+    backgroundColor: '#22C55E08',
+    borderColor: '#22C55E',
   },
   stepNum: {
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#86868b',
+    backgroundColor: '#6B7280',
     color: '#ffffff',
     fontSize: 9,
     fontWeight: 'bold',
@@ -1100,12 +1100,12 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   stepNumDone: {
-    backgroundColor: '#34c759',
+    backgroundColor: '#22C55E',
   },
   stepLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   wizardContent: {
     flex: 1,
@@ -1114,23 +1114,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     padding: 20,
   },
   wizardCardTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   wizardCardSub: {
     fontSize: 11,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 4,
     lineHeight: 16,
   },
   viewfinderMock: {
     height: 140,
-    backgroundColor: '#1d1d1f',
+    backgroundColor: '#111827',
     borderRadius: 10,
     marginVertical: 18,
     alignItems: 'center',
@@ -1138,12 +1138,12 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   viewfinderMockText: {
-    color: '#34c759',
+    color: '#22C55E',
     fontSize: 12,
     fontWeight: '700',
   },
   viewfinderMockSub: {
-    color: '#86868b',
+    color: '#6B7280',
     fontSize: 9,
     marginTop: 4,
   },
@@ -1152,13 +1152,13 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderWidth: 2,
-    borderColor: '#34c759',
+    borderColor: '#22C55E',
     borderStyle: 'dashed',
     borderRadius: 8,
   },
   manualLabel: {
     fontSize: 11,
-    color: '#1d1d1f',
+    color: '#111827',
     fontWeight: '800',
     marginTop: 14,
     marginBottom: 8,
@@ -1167,16 +1167,16 @@ const styles = StyleSheet.create({
   },
   tokenInput: {
     backgroundColor: '#ffffff',
-    color: '#1d1d1f',
+    color: '#111827',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 8,
     padding: 12,
     fontSize: 13,
     marginBottom: 16,
   },
   verifyBtn: {
-    backgroundColor: '#0066cc',
+    backgroundColor: '#1E5EFF',
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
@@ -1189,7 +1189,7 @@ const styles = StyleSheet.create({
   // Selfie styles
   selfieViewfinder: {
     height: 160,
-    backgroundColor: '#1d1d1f',
+    backgroundColor: '#111827',
     borderRadius: 10,
     marginVertical: 18,
     alignItems: 'center',
@@ -1199,14 +1199,14 @@ const styles = StyleSheet.create({
     width: 90,
     height: 120,
     borderWidth: 2,
-    borderColor: '#0066cc',
+    borderColor: '#1E5EFF',
     borderStyle: 'dashed',
     borderRadius: 45,
     alignItems: 'center',
     justifyContent: 'center',
   },
   ovalFrameLabel: {
-    color: '#86868b',
+    color: '#6B7280',
     fontSize: 9,
     fontWeight: '700',
   },
@@ -1217,7 +1217,7 @@ const styles = StyleSheet.create({
     fontSize: 40,
   },
   selfieCaptureConfirm: {
-    color: '#34c759',
+    color: '#22C55E',
     fontSize: 12,
     fontWeight: '700',
     marginTop: 8,
@@ -1225,7 +1225,7 @@ const styles = StyleSheet.create({
   // File Selector simulation styles
   fileSelectorSub: {
     fontSize: 11,
-    color: '#86868b',
+    color: '#6B7280',
     marginBottom: 10,
   },
   fileOptionsList: {
@@ -1234,15 +1234,15 @@ const styles = StyleSheet.create({
   fileCard: {
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 8,
     padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
   },
   fileCardActive: {
-    borderColor: '#0066cc',
-    backgroundColor: '#0066cc0d',
+    borderColor: '#1E5EFF',
+    backgroundColor: '#1E5EFF0d',
     borderWidth: 1.5,
   },
   fileIcon: {
@@ -1252,20 +1252,20 @@ const styles = StyleSheet.create({
   fileNameText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#1d1d1f',
+    color: '#111827',
     flex: 1,
   },
   fileCardActiveText: {
-    color: '#0066cc',
+    color: '#1E5EFF',
   },
   checkIcon: {
     fontSize: 14,
-    color: '#0066cc',
+    color: '#1E5EFF',
     fontWeight: 'bold',
   },
   attachmentBox: {
-    backgroundColor: '#0066cc08',
-    borderColor: '#0066cc',
+    backgroundColor: '#1E5EFF08',
+    borderColor: '#1E5EFF',
     borderWidth: 1,
     borderRadius: 8,
     padding: 12,
@@ -1274,24 +1274,24 @@ const styles = StyleSheet.create({
   attachmentLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#0066cc',
+    color: '#1E5EFF',
     textTransform: 'uppercase',
   },
   attachmentValue: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#1d1d1f',
+    color: '#111827',
     marginTop: 4,
   },
   customUploadNotice: {
     fontSize: 9,
-    color: '#34c759',
+    color: '#22C55E',
     fontWeight: '700',
     marginTop: 4,
   },
   uploadBtnBox: {
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderStyle: 'solid',
     backgroundColor: '#f4f5f6',
     borderRadius: 8,
@@ -1302,13 +1302,13 @@ const styles = StyleSheet.create({
   uploadBtnBoxText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   // Simulator styles
   simulatorTitle: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#86868b',
+    color: '#6B7280',
     textTransform: 'uppercase',
     marginTop: 16,
     marginBottom: 8,
@@ -1316,7 +1316,7 @@ const styles = StyleSheet.create({
   locationSimulator: {
     backgroundColor: '#f4f5f6',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 10,
     padding: 12,
     marginVertical: 14,
@@ -1330,11 +1330,11 @@ const styles = StyleSheet.create({
   simulatorToggleLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   simulatorSubText: {
     fontSize: 9,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 2,
   },
   locationOptionList: {
@@ -1344,54 +1344,54 @@ const styles = StyleSheet.create({
   locOptionBtn: {
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 8,
     padding: 12,
   },
   locOptionBtnActive: {
-    borderColor: '#0066cc',
-    backgroundColor: '#0066cc05',
+    borderColor: '#1E5EFF',
+    backgroundColor: '#1E5EFF05',
     borderWidth: 1.5,
   },
   locOptionText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   locOptionTextActive: {
-    color: '#0066cc',
+    color: '#1E5EFF',
   },
   locOptionSubText: {
     fontSize: 9,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 2,
   },
   locOptionTextActiveSub: {
-    color: '#0066ccaa',
+    color: '#1E5EFFaa',
   },
   locationDisplayBox: {
     backgroundColor: '#f4f5f6',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     padding: 16,
     alignItems: 'center',
     marginBottom: 16,
   },
   locDisplayHeader: {
     fontSize: 11,
-    color: '#86868b',
+    color: '#6B7280',
     fontWeight: '700',
     marginBottom: 4,
   },
   coordinatesText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
     marginTop: 2,
   },
   submitBtn: {
-    backgroundColor: '#34c759',
+    backgroundColor: '#22C55E',
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
@@ -1407,7 +1407,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     padding: 24,
     alignItems: 'center',
   },
@@ -1418,11 +1418,11 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#34c759',
+    color: '#22C55E',
   },
   successSub: {
     fontSize: 12,
-    color: '#86868b',
+    color: '#6B7280',
     textAlign: 'center',
     marginTop: 6,
     lineHeight: 18,
@@ -1430,7 +1430,7 @@ const styles = StyleSheet.create({
   summaryBox: {
     backgroundColor: '#f4f5f6',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 8,
     padding: 16,
     width: '100%',
@@ -1439,15 +1439,15 @@ const styles = StyleSheet.create({
   },
   summaryItem: {
     fontSize: 11,
-    color: '#86868b',
+    color: '#6B7280',
     fontWeight: '700',
   },
   summaryVal: {
-    color: '#1d1d1f',
+    color: '#111827',
     fontWeight: 'normal',
   },
   doneBtn: {
-    backgroundColor: '#1d1d1f',
+    backgroundColor: '#111827',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
@@ -1464,29 +1464,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginTop: 4,
   },
   dropdownTriggerActive: {
-    borderColor: '#0066cc',
+    borderColor: '#1E5EFF',
     borderWidth: 1.5,
   },
   dropdownTriggerText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   dropdownChevron: {
     fontSize: 10,
-    color: '#86868b',
+    color: '#6B7280',
   },
   dropdownListContainer: {
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 8,
     marginTop: 6,
     overflow: 'hidden',
@@ -1495,26 +1495,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#f4f4f4',
+    borderBottomColor: '#E5E7EB',
   },
   dropdownItemActive: {
-    backgroundColor: '#0066cc08',
+    backgroundColor: '#1E5EFF08',
   },
   dropdownItemText: {
     fontSize: 13,
-    color: '#1d1d1f',
+    color: '#111827',
   },
   dropdownTextActive: {
-    color: '#0066cc',
+    color: '#1E5EFF',
     fontWeight: '700',
   },
   locDisplayStatus: {
     fontSize: 10,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 8,
   },
   distGreen: {
-    color: '#34c759',
+    color: '#22C55E',
   },
   autofillLink: {
     paddingVertical: 8,
@@ -1522,17 +1522,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   autofillLinkText: {
-    color: '#0066cc',
+    color: '#1E5EFF',
     fontSize: 12,
     fontWeight: '700',
   },
   primaryCheckinBtn: {
-    backgroundColor: '#0066cc',
+    backgroundColor: '#1E5EFF',
     borderRadius: 12,
     paddingVertical: 18,
     paddingHorizontal: 16,
     alignItems: 'center',
-    shadowColor: '#0066cc',
+    shadowColor: '#1E5EFF',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -1565,12 +1565,12 @@ const styles = StyleSheet.create({
   },
   excuseFallbackText: {
     fontSize: 12,
-    color: '#86868b',
+    color: '#6B7280',
     fontWeight: '500',
   },
   excuseFallbackLink: {
     fontSize: 12,
-    color: '#0066cc',
+    color: '#1E5EFF',
     fontWeight: '700',
     textDecorationLine: 'underline',
   },
@@ -1579,14 +1579,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   backLinkRowText: {
-    color: '#86868b',
+    color: '#6B7280',
     fontSize: 12,
     fontWeight: '700',
   },
   // Remote Location Reporting Styles
   remoteReportContainer: {
-    backgroundColor: '#f5f5f7',
-    borderColor: '#eaeaea',
+    backgroundColor: '#FAFBFC',
+    borderColor: '#E5E7EB',
     borderWidth: 1,
     borderRadius: 12,
     padding: 14,
@@ -1595,18 +1595,18 @@ const styles = StyleSheet.create({
   remoteReportTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
     marginBottom: 4,
   },
   remoteReportSub: {
     fontSize: 10,
-    color: '#86868b',
+    color: '#6B7280',
     lineHeight: 14,
     marginBottom: 12,
   },
   remoteTogglePill: {
     backgroundColor: '#ffffff',
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderWidth: 1,
     borderRadius: 8,
     paddingVertical: 10,
@@ -1615,20 +1615,20 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   remoteTogglePillActive: {
-    backgroundColor: '#ff950010',
-    borderColor: '#ff9500aa',
+    backgroundColor: '#F59E0B10',
+    borderColor: '#F59E0Baa',
   },
   remoteToggleText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#86868b',
+    color: '#6B7280',
   },
   remoteToggleTextActive: {
-    color: '#ff9500',
+    color: '#F59E0B',
   },
   remoteInputsBox: {
     backgroundColor: '#ffffff',
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderWidth: 1,
     borderRadius: 8,
     padding: 12,
@@ -1637,20 +1637,20 @@ const styles = StyleSheet.create({
   remoteInputLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
     textTransform: 'uppercase',
     marginBottom: 6,
     marginTop: 8,
   },
   remoteTextInput: {
-    backgroundColor: '#f5f5f7',
+    backgroundColor: '#FAFBFC',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 6,
     paddingHorizontal: 10,
     paddingVertical: 8,
     fontSize: 12,
-    color: '#1d1d1f',
+    color: '#111827',
     marginBottom: 8,
   },
 });

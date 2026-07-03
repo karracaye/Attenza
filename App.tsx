@@ -83,6 +83,7 @@ export default function App() {
   const [role, setRole] = useState<RoleType>('student');
   const [studentTab, setStudentTab] = useState<StudentTab>('dashboard');
   const [professorTab, setProfessorTab] = useState<ProfessorTab>('dashboard');
+  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
 
   // Entities state
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
@@ -95,7 +96,7 @@ export default function App() {
   const [studentProfile, setStudentProfile] = useState<StudentProfile>({
     studentId: '2024-0518',
     studentName: 'Katrina Santillan',
-    avatarColor: '#0066cc',
+    avatarColor: '#1E5EFF',
     year: '3rd Year',
     section: 'Section B',
     isIrregular: false,
@@ -436,6 +437,7 @@ export default function App() {
     return (
       <StudentProfileScreen
         profile={studentProfile}
+        onLogout={handleLogout}
       />
     );
   };
@@ -544,16 +546,73 @@ export default function App() {
             <View style={styles.appHeader}>
               <Image source={require('./assets/icon.png')} style={styles.headerLogo} resizeMode="contain" />
               
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, position: 'relative', zIndex: 1000 }}>
                 <TouchableOpacity style={styles.roleTogglePill} onPress={toggleRole}>
                   <Text style={styles.roleToggleText}>
                     Role: <Text style={styles.roleTextHighlight}>{role.toUpperCase()}</Text>
                   </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.7}>
-                  <Text style={styles.logoutBtnText}>Logout</Text>
+                <TouchableOpacity 
+                  style={{ position: 'relative', padding: 4 }} 
+                  onPress={() => Alert.alert('🔔 Notifications', 'No new class session updates at the moment.')}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="notifications-outline" size={22} color="#111827" />
+                  <View 
+                    style={{ 
+                      position: 'absolute', 
+                      top: 4, 
+                      right: 4, 
+                      width: 7, 
+                      height: 7, 
+                      borderRadius: 3.5, 
+                      backgroundColor: '#1E5EFF' 
+                    }} 
+                  />
                 </TouchableOpacity>
+
+                {/* More Options / Settings Dropdown Trigger */}
+                <TouchableOpacity 
+                  style={[styles.menuTriggerBtn, isRoleDropdownOpen && styles.menuTriggerBtnActive]} 
+                  onPress={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="ellipsis-vertical" size={20} color="#111827" />
+                </TouchableOpacity>
+
+                {/* Settings & Logout Dropdown Menu */}
+                {isRoleDropdownOpen && (
+                  <View style={[styles.roleDropdownMenu, { top: 40, right: 0 }]}>
+                    <TouchableOpacity 
+                      style={styles.dropdownMenuItem}
+                      onPress={() => {
+                        setIsRoleDropdownOpen(false);
+                        if (role === 'student') {
+                          setStudentTab('profile');
+                        } else {
+                          setProfessorTab('subjects');
+                        }
+                      }}
+                    >
+                      <Ionicons name="settings-outline" size={15} color="#111827" style={{ marginRight: 8 }} />
+                      <Text style={styles.dropdownMenuItemText}>Settings</Text>
+                    </TouchableOpacity>
+
+                    <View style={styles.dropdownMenuDivider} />
+
+                    <TouchableOpacity 
+                      style={styles.dropdownMenuItem}
+                      onPress={() => {
+                        setIsRoleDropdownOpen(false);
+                        handleLogout();
+                      }}
+                    >
+                      <Ionicons name="log-out-outline" size={15} color="#EF4444" style={{ marginRight: 8 }} />
+                      <Text style={[styles.dropdownMenuItemText, { color: '#EF4444' }]}>Log Out</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             </View>
 
@@ -568,10 +627,11 @@ export default function App() {
                     style={styles.tabItem}
                     onPress={() => setProfessorTab('dashboard')}
                   >
+                    <View style={[styles.tabIndicator, professorTab === 'dashboard' && styles.tabIndicatorActive]} />
                     <Ionicons
                       name={professorTab === 'dashboard' ? 'grid' : 'grid-outline'}
                       size={20}
-                      color={professorTab === 'dashboard' ? '#0066cc' : '#86868b'}
+                      color={professorTab === 'dashboard' ? '#1E5EFF' : '#6B7280'}
                     />
                     <Text style={[styles.tabLabel, professorTab === 'dashboard' && styles.tabLabelActive]}>
                       Dashboard
@@ -582,10 +642,11 @@ export default function App() {
                     style={styles.tabItem}
                     onPress={() => setProfessorTab('launcher')}
                   >
+                    <View style={[styles.tabIndicator, professorTab === 'launcher' && styles.tabIndicatorActive]} />
                     <Ionicons
                       name={professorTab === 'launcher' ? 'rocket' : 'rocket-outline'}
                       size={20}
-                      color={professorTab === 'launcher' ? '#0066cc' : '#86868b'}
+                      color={professorTab === 'launcher' ? '#1E5EFF' : '#6B7280'}
                     />
                     <Text style={[styles.tabLabel, professorTab === 'launcher' && styles.tabLabelActive]}>
                       Roll Call
@@ -596,10 +657,11 @@ export default function App() {
                     style={styles.tabItem}
                     onPress={() => setProfessorTab('subjects')}
                   >
+                    <View style={[styles.tabIndicator, professorTab === 'subjects' && styles.tabIndicatorActive]} />
                     <Ionicons
                       name={professorTab === 'subjects' ? 'book' : 'book-outline'}
                       size={20}
-                      color={professorTab === 'subjects' ? '#0066cc' : '#86868b'}
+                      color={professorTab === 'subjects' ? '#1E5EFF' : '#6B7280'}
                     />
                     <Text style={[styles.tabLabel, professorTab === 'subjects' && styles.tabLabelActive]}>
                       Subjects
@@ -610,10 +672,11 @@ export default function App() {
                     style={styles.tabItem}
                     onPress={() => setProfessorTab('history')}
                   >
+                    <View style={[styles.tabIndicator, professorTab === 'history' && styles.tabIndicatorActive]} />
                     <Ionicons
                       name={professorTab === 'history' ? 'calendar' : 'calendar-outline'}
                       size={20}
-                      color={professorTab === 'history' ? '#0066cc' : '#86868b'}
+                      color={professorTab === 'history' ? '#1E5EFF' : '#6B7280'}
                     />
                     <Text style={[styles.tabLabel, professorTab === 'history' && styles.tabLabelActive]}>
                       Logs
@@ -626,10 +689,11 @@ export default function App() {
                     style={styles.tabItem}
                     onPress={() => setStudentTab('dashboard')}
                   >
+                    <View style={[styles.tabIndicator, studentTab === 'dashboard' && styles.tabIndicatorActive]} />
                     <Ionicons
                       name={studentTab === 'dashboard' ? 'home' : 'home-outline'}
                       size={20}
-                      color={studentTab === 'dashboard' ? '#0066cc' : '#86868b'}
+                      color={studentTab === 'dashboard' ? '#1E5EFF' : '#6B7280'}
                     />
                     <Text style={[styles.tabLabel, studentTab === 'dashboard' && styles.tabLabelActive]}>
                       Dashboard
@@ -640,10 +704,11 @@ export default function App() {
                     style={styles.tabItem}
                     onPress={() => setStudentTab('checkin')}
                   >
+                    <View style={[styles.tabIndicator, studentTab === 'checkin' && styles.tabIndicatorActive]} />
                     <Ionicons
                       name={studentTab === 'checkin' ? 'qr-code' : 'qr-code-outline'}
                       size={20}
-                      color={studentTab === 'checkin' ? '#0066cc' : '#86868b'}
+                      color={studentTab === 'checkin' ? '#1E5EFF' : '#6B7280'}
                     />
                     <Text style={[styles.tabLabel, studentTab === 'checkin' && styles.tabLabelActive]}>
                       Check In
@@ -654,10 +719,11 @@ export default function App() {
                     style={styles.tabItem}
                     onPress={() => setStudentTab('timetable')}
                   >
+                    <View style={[styles.tabIndicator, studentTab === 'timetable' && styles.tabIndicatorActive]} />
                     <Ionicons
                       name={studentTab === 'timetable' ? 'calendar' : 'calendar-outline'}
                       size={20}
-                      color={studentTab === 'timetable' ? '#0066cc' : '#86868b'}
+                      color={studentTab === 'timetable' ? '#1E5EFF' : '#6B7280'}
                     />
                     <Text style={[styles.tabLabel, studentTab === 'timetable' && styles.tabLabelActive]}>
                       Timetable
@@ -668,10 +734,11 @@ export default function App() {
                     style={styles.tabItem}
                     onPress={() => setStudentTab('history')}
                   >
+                    <View style={[styles.tabIndicator, studentTab === 'history' && styles.tabIndicatorActive]} />
                     <Ionicons
                       name={studentTab === 'history' ? 'time' : 'time-outline'}
                       size={20}
-                      color={studentTab === 'history' ? '#0066cc' : '#86868b'}
+                      color={studentTab === 'history' ? '#1E5EFF' : '#6B7280'}
                     />
                     <Text style={[styles.tabLabel, studentTab === 'history' && styles.tabLabelActive]}>
                       Logs
@@ -682,10 +749,11 @@ export default function App() {
                     style={styles.tabItem}
                     onPress={() => setStudentTab('profile')}
                   >
+                    <View style={[styles.tabIndicator, studentTab === 'profile' && styles.tabIndicatorActive]} />
                     <Ionicons
                       name={studentTab === 'profile' ? 'person' : 'person-outline'}
                       size={20}
-                      color={studentTab === 'profile' ? '#0066cc' : '#86868b'}
+                      color={studentTab === 'profile' ? '#1E5EFF' : '#6B7280'}
                     />
                     <Text style={[styles.tabLabel, studentTab === 'profile' && styles.tabLabelActive]}>
                       Identity
@@ -704,9 +772,10 @@ export default function App() {
 // Student Profile Settings View (Locked Read-Only version)
 interface ProfileProps {
   profile: StudentProfile;
+  onLogout: () => void;
 }
 
-function StudentProfileScreen({ profile }: ProfileProps) {
+function StudentProfileScreen({ profile, onLogout }: ProfileProps) {
   const id = profile.studentId;
   const name = profile.studentName;
   const year = profile.year;
@@ -725,7 +794,7 @@ function StudentProfileScreen({ profile }: ProfileProps) {
 
       <View style={styles.card}>
         <View style={styles.idCardHeader}>
-          <View style={[styles.avatarCircleLarge, { backgroundColor: '#0066cc' }]}>
+          <View style={[styles.avatarCircleLarge, { backgroundColor: '#1E5EFF' }]}>
             <Text style={styles.avatarTextLarge}>{name.slice(0, 1).toUpperCase() || '👤'}</Text>
           </View>
           <View style={{ flex: 1 }}>
@@ -805,11 +874,27 @@ function StudentProfileScreen({ profile }: ProfileProps) {
           <Switch
             value={isIrregular}
             disabled={true}
-            trackColor={{ false: '#e5e7eb', true: '#ff9500' }}
+            trackColor={{ false: '#e5e7eb', true: '#F59E0B' }}
             thumbColor="#ffffff"
             style={Platform.OS === 'web' ? { transform: [{ scale: 0.8 }] } as any : {}}
           />
         </View>
+
+        <TouchableOpacity 
+          style={{ 
+            backgroundColor: '#EF44440d', 
+            borderColor: '#EF444430', 
+            borderWidth: 1, 
+            borderRadius: 12, 
+            paddingVertical: 14, 
+            alignItems: 'center', 
+            marginTop: 16 
+          }} 
+          onPress={onLogout}
+          activeOpacity={0.8}
+        >
+          <Text style={{ color: '#EF4444', fontSize: 13, fontWeight: '800' }}>Log Out Account</Text>
+        </TouchableOpacity>
       </View>
       <View style={{ height: 40 }} />
     </ScrollView>
@@ -834,13 +919,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#f4f4f4',
+    borderBottomColor: '#E5E7EB',
     backgroundColor: '#ffffff',
+    zIndex: 10000,
+    position: 'relative',
   },
   headerTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0066cc',
+    color: '#1E5EFF',
     letterSpacing: -1,
   },
   headerLogo: {
@@ -848,33 +935,74 @@ const styles = StyleSheet.create({
     height: 32,
   },
   roleTogglePill: {
-    backgroundColor: '#f4f5f6',
+    backgroundColor: '#F3F4F6',
     borderRadius: 20,
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
   },
   roleToggleText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#86868b',
+    color: '#6B7280',
   },
   roleTextHighlight: {
-    color: '#0066cc',
+    color: '#1E5EFF',
   },
-  logoutBtn: {
-    backgroundColor: '#ff3b3010',
-    borderColor: '#ff3b3050',
-    borderWidth: 0.5,
-    borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+  roleDropdownMenu: {
+    position: 'absolute',
+    top: 36,
+    right: 4,
+    backgroundColor: '#ffffff',
+    borderColor: '#E5E7EB',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 6,
+    width: 130,
+    zIndex: 9999,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 5,
+      },
+      web: {
+        boxShadow: '0px 4px 10px rgba(0,0,0,0.1)',
+      } as any,
+    }),
   },
-  logoutBtnText: {
-    color: '#ff3b30',
-    fontSize: 10,
-    fontWeight: '800',
+  dropdownMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+  },
+  dropdownMenuItemText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  dropdownMenuDivider: {
+    height: 0.5,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 4,
+  },
+  menuTriggerBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuTriggerBtnActive: {
+    borderColor: '#1E5EFF',
   },
   mainContent: {
     flex: 1,
@@ -884,24 +1012,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     height: Platform.OS === 'ios' ? 84 : 64,
     borderTopWidth: 1,
-    borderTopColor: '#f4f4f4',
+    borderTopColor: '#E5E7EB',
     backgroundColor: '#ffffff',
     paddingBottom: Platform.OS === 'ios' ? 24 : 8,
-    paddingTop: 10,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+  },
+  tabIndicator: {
+    height: 3,
+    width: 36,
+    backgroundColor: 'transparent',
+    marginBottom: 4,
+    borderRadius: 1.5,
+  },
+  tabIndicatorActive: {
+    backgroundColor: '#1E5EFF',
   },
   tabLabel: {
-    fontSize: 9,
-    color: '#86868b',
-    marginTop: 4,
+    fontSize: 9.5,
+    color: '#6B7280',
+    marginTop: 2,
     fontWeight: '700',
   },
   tabLabelActive: {
-    color: '#0066cc',
+    color: '#1E5EFF',
   },
   // Splash Screen specific layout
   splashOverlay: {
@@ -932,14 +1069,14 @@ const styles = StyleSheet.create({
     bottom: 20,
     fontSize: 9,
     fontWeight: '800',
-    color: '#86868b',
+    color: '#6B7280',
     textTransform: 'uppercase',
     letterSpacing: 1.5,
   },
   // Profile specific styles
   profileContainer: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FAFBFC',
     paddingHorizontal: 20,
     paddingTop: 16,
   },
@@ -949,17 +1086,17 @@ const styles = StyleSheet.create({
   profileHeaderTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
     letterSpacing: -0.5,
   },
   profileHeaderSub: {
     fontSize: 12,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 4,
     lineHeight: 18,
   },
   card: {
-    backgroundColor: '#1d1d1f',
+    backgroundColor: '#111827',
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
@@ -978,7 +1115,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#f4f5f6',
+    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -998,20 +1135,20 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   idCardIrregBadge: {
-    backgroundColor: '#ff95001a',
-    borderColor: '#ff9500',
+    backgroundColor: '#FFF7ED',
+    borderColor: '#F59E0B',
     borderWidth: 0.5,
     borderRadius: 3,
     paddingHorizontal: 4,
     paddingVertical: 1,
   },
   idCardIrregBadgeText: {
-    color: '#ff9500',
+    color: '#F59E0B',
     fontSize: 7,
     fontWeight: '900',
   },
   idCardNum: {
-    color: '#86868b',
+    color: '#6B7280',
     fontSize: 11,
     marginTop: 2,
     fontWeight: '600',
@@ -1045,13 +1182,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     marginBottom: 40,
   },
   formLabel: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#86868b',
+    color: '#6B7280',
     textTransform: 'uppercase',
     marginBottom: 6,
     marginTop: 14,
@@ -1059,38 +1196,38 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: '#ffffff',
-    color: '#1d1d1f',
+    color: '#374151',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 8,
     padding: 12,
     fontSize: 13,
     marginBottom: 10,
   },
   disabledInput: {
-    backgroundColor: '#f4f5f6',
-    borderColor: '#eaeaea',
-    color: '#86868b',
+    backgroundColor: '#FAFBFC',
+    borderColor: '#E5E7EB',
+    color: '#6B7280',
   },
   statusSwitchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 14,
-    backgroundColor: '#f4f5f6',
+    backgroundColor: '#FAFBFC',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 8,
     padding: 12,
   },
   switchLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   switchSubText: {
     fontSize: 9,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 2,
   },
 

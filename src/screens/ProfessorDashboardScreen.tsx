@@ -5,26 +5,18 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Platform,
   Alert,
-  Modal,
   Image,
+  Modal,
+  Platform,
 } from 'react-native';
-
-interface Props {
-  currentUserName: string;
-  onNavigateToLauncher: () => void;
-  onNavigateToSubjects: () => void;
-  onNavigateToHistory: () => void;
-}
+import { Ionicons } from '@expo/vector-icons';
 
 interface PendingExcuse {
   id: string;
   studentId: string;
   studentName: string;
   subjectCode: string;
-  date: string;
-  timestamp: string;
   excuseReason: string;
   excuseAttachment: string;
   excuseAttachmentUri?: string;
@@ -33,29 +25,43 @@ interface PendingExcuse {
   isIrregular: boolean;
 }
 
+interface Props {
+  currentUserName: string;
+  onNavigateToLauncher: () => void;
+  onNavigateToSubjects: () => void;
+  onNavigateToHistory: () => void;
+}
+
 const INITIAL_EXCUSES: PendingExcuse[] = [
   {
-    id: 'exc1',
-    studentId: '2024-0812',
-    studentName: 'Marc Lopez',
-    subjectCode: 'CS 302',
-    date: 'July 2, 2026',
-    timestamp: '08:15 AM',
-    excuseReason: 'Official University Athletic Meet representing the campus',
-    excuseAttachment: 'Athletic_Meet_Exemption.pdf',
+    id: 'ex-1',
+    studentId: '2023-0149',
+    studentName: 'Katrina Escoba',
+    subjectCode: 'IT 204',
+    excuseReason: 'Had a severe dental appointment extraction. Attached my clinical medical certificate.',
+    excuseAttachment: 'medical_cert_katrina.jpg',
     year: '3rd Year',
     section: 'Section B',
     isIrregular: false,
   },
   {
-    id: 'exc2',
-    studentId: '2024-0518',
-    studentName: 'Katrina Santillan',
+    id: 'ex-2',
+    studentId: '2022-9011',
+    studentName: 'Julian Alvarez',
+    subjectCode: 'CS 402',
+    excuseReason: 'Representing the university in the national robotics league conference.',
+    excuseAttachment: 'official_excuse_letter.pdf',
+    year: '4th Year',
+    section: 'Section A',
+    isIrregular: true,
+  },
+  {
+    id: 'ex-3',
+    studentId: '2023-0081',
+    studentName: 'Sarah Jenkins',
     subjectCode: 'IT 204',
-    date: 'July 1, 2026',
-    timestamp: '02:30 PM',
-    excuseReason: 'Severe dental surgery under medical certification',
-    excuseAttachment: 'Medical_Certificate.pdf',
+    excuseReason: 'Home Wi-Fi router malfunctioned during the virtual session, preventing QR scan.',
+    excuseAttachment: 'isp_ticket_receipt.jpg',
     year: '3rd Year',
     section: 'Section B',
     isIrregular: false,
@@ -110,91 +116,92 @@ export default function ProfessorDashboardScreen({
         <View style={styles.bannerGrid}>
           <View style={styles.avatarCircle}>
             <Text style={styles.avatarText}>
-              {currentUserName.split(' ').pop()?.slice(0, 1).toUpperCase() || 'P'}
+              {currentUserName.slice(0, 2).toUpperCase()}
             </Text>
           </View>
           <View style={styles.welcomeTextColumn}>
-            <Text style={styles.greetingText}>Welcome back, {currentUserName}! 🏫</Text>
-            <Text style={styles.welcomeSub}>Campus Administrator • Attenza Secured Roster Terminal</Text>
+            <Text style={styles.greetingText}>Welcome, Prof. {currentUserName} 👋</Text>
+            <Text style={styles.welcomeSub}>College of Information Technology • Academic Faculty</Text>
           </View>
         </View>
       </View>
 
-      {/* Launcher Action Shortcut Card */}
-      <TouchableOpacity 
-        style={styles.launcherCard} 
-        onPress={onNavigateToLauncher}
-        activeOpacity={0.9}
-      >
+      {/* Start Roll Call Shortcut Card */}
+      <View style={styles.launcherCard}>
         <View style={styles.launcherHeaderRow}>
           <Text style={styles.launcherEmoji}>🚀</Text>
           <View style={{ flex: 1 }}>
             <Text style={styles.launcherTitle}>Start Attendance Roll Call</Text>
-            <Text style={styles.launcherSub}>Launch a secure Face-to-Face or Online class session with rolling OTP QR codes, selfies, and GPS bounds.</Text>
+            <Text style={styles.launcherSub}>
+              Set subject, target classroom coordinates, delivery mode, and display secure QR code for students.
+            </Text>
           </View>
         </View>
-        <View style={styles.launcherBtn}>
-          <Text style={styles.launcherBtnLabel}>Open Roll Call Setup Wizard</Text>
-        </View>
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.launcherBtn} onPress={onNavigateToLauncher}>
+          <Text style={styles.launcherBtnLabel}>Start Session Setup</Text>
+        </TouchableOpacity>
+      </View>
 
-      {/* Professor Stats Summary */}
-      <Text style={styles.sectionHeaderTitle}>📊 Roster Statistics</Text>
+      {/* Summary Statistics Panels */}
+      <Text style={styles.sectionHeaderTitle}>📈 Academic Stats Summary</Text>
       <View style={styles.statsGrid}>
         <View style={styles.statsRow}>
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Active Courses</Text>
-            <Text style={styles.statVal}>2 Classes</Text>
-            <TouchableOpacity onPress={onNavigateToSubjects}>
-              <Text style={styles.statLink}>Manage Schedules ➔</Text>
-            </TouchableOpacity>
-          </View>
-
+          {/* Average Attendance rate */}
           <View style={styles.statBox}>
             <Text style={styles.statLabel}>Avg Attendance</Text>
-            <Text style={[styles.statVal, { color: '#34c759' }]}>92.4%</Text>
-            <TouchableOpacity onPress={onNavigateToHistory}>
-              <Text style={styles.statLink}>Review Logs ➔</Text>
-            </TouchableOpacity>
+            <Text style={[styles.statVal, { color: '#22C55E' }]}>92.4%</Text>
+            <Text style={styles.statSub}>Target: &gt; 90%</Text>
+          </View>
+
+          {/* Pending excuses letters */}
+          <View style={styles.statBox}>
+            <Text style={styles.statLabel}>Excuse Queue</Text>
+            <Text style={[styles.statVal, excuses.length > 0 ? { color: '#F59E0B' } : { color: '#111827' }]}>
+              {excuses.length} Pending
+            </Text>
+            <Text style={styles.statSub}>Action required</Text>
           </View>
         </View>
 
         <View style={styles.statsRow}>
+          {/* Security lock state */}
           <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Excuse Queue</Text>
-            <Text style={[styles.statVal, excuses.length > 0 ? { color: '#ff9500' } : { color: '#1d1d1f' }]}>
-              {excuses.length} Pending
-            </Text>
-            <Text style={styles.statSub}>Requires approval</Text>
+            <Text style={styles.statLabel}>Device Lockout</Text>
+            <Text style={[styles.statVal, { color: '#22C55E' }]}>Secured</Text>
+            <Text style={styles.statSub}>One device lock active</Text>
           </View>
 
+          {/* Quick links to Logs */}
           <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Terminal Status</Text>
-            <Text style={[styles.statVal, { color: '#34c759' }]}>Secured</Text>
-            <Text style={styles.statSub}>1-Check-in-per-device active</Text>
+            <Text style={styles.statLabel}>Past Records</Text>
+            <TouchableOpacity onPress={onNavigateToHistory}>
+              <Text style={styles.statLink}>View History Logs ➔</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
 
-      {/* Today's Schedule Overview */}
-      <Text style={styles.sectionHeaderTitle}>🗓️ Today's Classes</Text>
+      {/* Today's Teaching Timeline */}
+      <Text style={styles.sectionHeaderTitle}>📅 Today's Timetable Schedule</Text>
       <View style={styles.scheduleCard}>
+        {/* Course 1 */}
         <View style={styles.scheduleItem}>
           <View style={styles.scheduleTimeBox}>
-            <Text style={styles.timeLabel}>07:00 AM</Text>
-            <Text style={styles.timeSub}>09:00 AM</Text>
+            <Text style={styles.timeLabel}>08:00 AM</Text>
+            <Text style={styles.timeSub}>2 Hours</Text>
           </View>
           <View style={styles.scheduleInfo}>
-            <Text style={styles.courseCode}>CS 302</Text>
-            <Text style={styles.courseName}>Software Engineering II (3rd Year)</Text>
-            <Text style={styles.courseLocation}>🏫 Room 403 • Face-to-Face</Text>
+            <Text style={styles.courseCode}>CS 402</Text>
+            <Text style={styles.courseName}>Software Engineering (4th Year)</Text>
+            <Text style={styles.courseLocation}>🏫 Room 302 (F2F Session)</Text>
           </View>
         </View>
 
-        <View style={[styles.scheduleItem, { borderBottomWidth: 0, paddingBottom: 0 }]}>
+        {/* Course 2 */}
+        <View style={[styles.scheduleItem, { borderBottomWidth: 0, paddingBottom: 0, marginBottom: 0 }]}>
           <View style={styles.scheduleTimeBox}>
-            <Text style={styles.timeLabel}>02:00 PM</Text>
-            <Text style={styles.timeSub}>04:00 PM</Text>
+            <Text style={styles.timeLabel}>10:30 AM</Text>
+            <Text style={styles.timeSub}>3 Hours</Text>
           </View>
           <View style={styles.scheduleInfo}>
             <Text style={styles.courseCode}>IT 204</Text>
@@ -228,7 +235,7 @@ export default function ProfessorDashboardScreen({
 
             <View style={styles.excuseBody}>
               <Text style={styles.excuseReasonText}>
-                <Text style={{ fontWeight: '700', color: '#1d1d1f' }}>Reason: </Text>
+                <Text style={{ fontWeight: '700', color: '#111827' }}>Reason: </Text>
                 {exc.excuseReason}
               </Text>
               <TouchableOpacity 
@@ -245,7 +252,7 @@ export default function ProfessorDashboardScreen({
                 style={[styles.actionBtn, styles.btnReject]} 
                 onPress={() => handleRejectExcuse(exc.id, exc.studentName)}
               >
-                <Text style={[styles.actionBtnLabel, { color: '#ff3b30' }]}>Reject Letter</Text>
+                <Text style={[styles.actionBtnLabel, { color: '#EF4444' }]}>Reject Letter</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
@@ -309,10 +316,7 @@ export default function ProfessorDashboardScreen({
                 resizeMode="contain"
               />
             </View>
-            
-            <Text style={styles.lightboxFooterText}>
-              ✓ Verified against registered medical certificate and campus exempt credentials.
-            </Text>
+            <Text style={styles.lightboxFooterText}>✓ Image Verification Mock Standby</Text>
           </View>
         </View>
       </Modal>
@@ -325,7 +329,7 @@ export default function ProfessorDashboardScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FAFBFC',
     paddingHorizontal: 20,
     paddingTop: 16,
   },
@@ -344,8 +348,8 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#0066cc0c',
-    borderColor: '#0066cc15',
+    backgroundColor: '#EAF2FF',
+    borderColor: '#1E5EFF20',
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -353,7 +357,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0066cc',
+    color: '#1E5EFF',
   },
   welcomeTextColumn: {
     flex: 1,
@@ -361,18 +365,18 @@ const styles = StyleSheet.create({
   greetingText: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
     letterSpacing: -0.2,
   },
   welcomeSub: {
     fontSize: 10,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 2,
     fontWeight: '500',
   },
   launcherCard: {
     backgroundColor: '#ffffff',
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderWidth: 1,
     borderRadius: 16,
     padding: 16,
@@ -394,17 +398,17 @@ const styles = StyleSheet.create({
   launcherTitle: {
     fontSize: 14.5,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   launcherSub: {
     fontSize: 10,
-    color: '#86868b',
+    color: '#6B7280',
     lineHeight: 14,
     marginTop: 3,
     fontWeight: '500',
   },
   launcherBtn: {
-    backgroundColor: '#0066cc',
+    backgroundColor: '#1E5EFF',
     borderRadius: 8,
     paddingVertical: 10,
     alignItems: 'center',
@@ -418,7 +422,7 @@ const styles = StyleSheet.create({
   sectionHeaderTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#86868b',
+    color: '#6B7280',
     textTransform: 'uppercase',
     marginBottom: 10,
     marginTop: 12,
@@ -436,7 +440,7 @@ const styles = StyleSheet.create({
   statBox: {
     flex: 1,
     backgroundColor: '#ffffff',
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderWidth: 1,
     borderRadius: 12,
     padding: 14,
@@ -449,29 +453,29 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 9.5,
     fontWeight: '700',
-    color: '#86868b',
+    color: '#6B7280',
   },
   statVal: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
     marginTop: 3,
   },
   statLink: {
     fontSize: 9.5,
-    color: '#0066cc',
+    color: '#1E5EFF',
     fontWeight: '700',
     marginTop: 6,
   },
   statSub: {
     fontSize: 9,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 4,
     fontWeight: '500',
   },
   scheduleCard: {
     backgroundColor: '#ffffff',
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderWidth: 1,
     borderRadius: 16,
     padding: 14,
@@ -487,14 +491,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#f4f4f4',
+    borderBottomColor: '#E5E7EB',
     paddingBottom: 12,
     marginBottom: 12,
   },
   scheduleTimeBox: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0066cc06',
+    backgroundColor: '#F6F9FF',
     borderRadius: 8,
     width: 60,
     height: 44,
@@ -502,11 +506,11 @@ const styles = StyleSheet.create({
   timeLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#0066cc',
+    color: '#1E5EFF',
   },
   timeSub: {
     fontSize: 8,
-    color: '#86868b',
+    color: '#6B7280',
     fontWeight: '600',
     marginTop: 1,
   },
@@ -516,23 +520,23 @@ const styles = StyleSheet.create({
   courseCode: {
     fontSize: 12.5,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   courseName: {
     fontSize: 10,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 2,
     fontWeight: '500',
   },
   courseLocation: {
     fontSize: 9.5,
-    color: '#86868b',
+    color: '#6B7280',
     fontWeight: '600',
     marginTop: 4,
   },
   emptyExcuseCard: {
     backgroundColor: '#ffffff',
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderWidth: 1,
     borderRadius: 12,
     paddingVertical: 20,
@@ -542,16 +546,16 @@ const styles = StyleSheet.create({
   emptyExcuseText: {
     fontSize: 12.5,
     fontWeight: '800',
-    color: '#34c759',
+    color: '#22C55E',
   },
   emptyExcuseSub: {
     fontSize: 9.5,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 4,
   },
   excuseCard: {
     backgroundColor: '#ffffff',
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderWidth: 1,
     borderRadius: 16,
     padding: 14,
@@ -567,29 +571,29 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     borderBottomWidth: 0.5,
-    borderBottomColor: '#f4f4f4',
+    borderBottomColor: '#E5E7EB',
     paddingBottom: 8,
     marginBottom: 8,
   },
   excuseStudentName: {
     fontSize: 12.5,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   excuseStudentDetails: {
     fontSize: 9.5,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 2,
     fontWeight: '500',
   },
   excuseSubjectBadge: {
-    backgroundColor: '#0066cc0c',
+    backgroundColor: '#F6F9FF',
     borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
   excuseSubjectText: {
-    color: '#0066cc',
+    color: '#1E5EFF',
     fontSize: 9,
     fontWeight: '800',
   },
@@ -598,15 +602,15 @@ const styles = StyleSheet.create({
   },
   excuseReasonText: {
     fontSize: 11,
-    color: '#55555c',
+    color: '#374151',
     lineHeight: 16,
   },
   excuseFileBox: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#f5f5f7',
-    borderColor: '#eaeaea',
+    backgroundColor: '#FAFBFC',
+    borderColor: '#E5E7EB',
     borderWidth: 1,
     borderRadius: 8,
     padding: 10,
@@ -614,12 +618,12 @@ const styles = StyleSheet.create({
   },
   excuseFileText: {
     fontSize: 10,
-    color: '#0066cc',
+    color: '#1E5EFF',
     fontWeight: '700',
   },
   excuseViewText: {
     fontSize: 9,
-    color: '#86868b',
+    color: '#6B7280',
     fontWeight: '700',
     textTransform: 'uppercase',
   },
@@ -636,11 +640,11 @@ const styles = StyleSheet.create({
   },
   btnReject: {
     backgroundColor: '#ffffff',
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
   },
   btnApprove: {
-    backgroundColor: '#0066cc',
-    borderColor: '#0066cc',
+    backgroundColor: '#1E5EFF',
+    borderColor: '#1E5EFF',
   },
   actionBtnLabel: {
     fontSize: 11,
@@ -667,17 +671,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#f4f4f4',
+    borderBottomColor: '#E5E7EB',
     paddingBottom: 8,
   },
   lightboxTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   lightboxSubtitle: {
     fontSize: 10.5,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 2,
   },
   lightboxCloseBtn: {
@@ -686,11 +690,11 @@ const styles = StyleSheet.create({
   lightboxCloseText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#86868b',
+    color: '#6B7280',
   },
   lightboxImageContainer: {
     flex: 1,
-    backgroundColor: '#f4f5f6',
+    backgroundColor: '#FAFBFC',
     borderRadius: 8,
     overflow: 'hidden',
   },
@@ -700,7 +704,7 @@ const styles = StyleSheet.create({
   },
   lightboxFooterText: {
     fontSize: 9.5,
-    color: '#34c759',
+    color: '#22C55E',
     fontWeight: '700',
     textAlign: 'center',
     marginTop: 12,
@@ -712,32 +716,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 14,
     borderTopWidth: 0.5,
-    borderTopColor: '#eaeaea',
+    borderTopColor: '#E5E7EB',
     paddingTop: 14,
   },
   pageBtn: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
-    backgroundColor: '#0066cc0d',
-    borderColor: '#0066cc20',
+    backgroundColor: '#EAF2FF',
+    borderColor: '#1E5EFF20',
     borderWidth: 1,
   },
   pageBtnDisabled: {
-    backgroundColor: '#f5f5f7',
-    borderColor: '#eaeaea',
+    backgroundColor: '#FAFBFC',
+    borderColor: '#E5E7EB',
   },
   pageBtnText: {
-    color: '#0066cc',
+    color: '#1E5EFF',
     fontSize: 11,
     fontWeight: '800',
   },
   pageBtnTextDisabled: {
-    color: '#86868b',
+    color: '#6B7280',
   },
   pageIndicator: {
     fontSize: 11.5,
     fontWeight: '700',
-    color: '#1d1d1f',
+    color: '#111827',
   },
 });

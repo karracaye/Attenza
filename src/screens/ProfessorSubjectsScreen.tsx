@@ -395,7 +395,7 @@ export default function ProfessorSubjectsScreen({ subjects, onSaveSubjects }: Pr
                     </TouchableOpacity>
                     <Text style={styles.actionLinkDivider}>•</Text>
                     <TouchableOpacity onPress={() => handleDeleteSubject(item.id)} activeOpacity={0.7}>
-                      <Text style={[styles.actionLinkText, { color: '#ff3b30' }]}>🗑️ Delete</Text>
+                      <Text style={[styles.actionLinkText, { color: '#EF4444' }]}>🗑️ Delete</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -578,7 +578,7 @@ export default function ProfessorSubjectsScreen({ subjects, onSaveSubjects }: Pr
               <TextInput
                 style={styles.input}
                 placeholder="e.g. IT 204"
-                placeholderTextColor="#86868b"
+                placeholderTextColor="#6B7280"
                 value={code}
                 onChangeText={setCode}
               />
@@ -587,7 +587,7 @@ export default function ProfessorSubjectsScreen({ subjects, onSaveSubjects }: Pr
               <TextInput
                 style={styles.input}
                 placeholder="e.g. Mobile Application Development"
-                placeholderTextColor="#86868b"
+                placeholderTextColor="#6B7280"
                 value={name}
                 onChangeText={setName}
               />
@@ -885,12 +885,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
     letterSpacing: -0.5,
   },
   headerSubtitle: {
     fontSize: 12,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 4,
     lineHeight: 18,
   },
@@ -918,13 +918,13 @@ const styles = StyleSheet.create({
   toggleBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#86868b',
+    color: '#6B7280',
   },
   toggleBtnTextActive: {
-    color: '#1d1d1f',
+    color: '#111827',
   },
   addBtn: {
-    backgroundColor: '#0066cc',
+    backgroundColor: '#1E5EFF',
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
@@ -942,13 +942,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     padding: 18,
     marginBottom: 16,
   },
   cardInfo: {
     borderBottomWidth: 1,
-    borderBottomColor: '#f4f4f4',
+    borderBottomColor: '#E5E7EB',
     paddingBottom: 12,
     marginBottom: 10,
   },
@@ -961,45 +961,45 @@ const styles = StyleSheet.create({
   subjectCode: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#0066cc',
+    color: '#1E5EFF',
     textTransform: 'uppercase',
   },
   shiftedBadge: {
-    backgroundColor: '#ff950010',
-    borderColor: '#ff9500',
+    backgroundColor: '#F59E0B10',
+    borderColor: '#F59E0B',
     borderWidth: 0.5,
     borderRadius: 3,
     paddingHorizontal: 4,
     paddingVertical: 1,
   },
   shiftedBadgeText: {
-    color: '#ff9500',
+    color: '#F59E0B',
     fontSize: 7,
     fontWeight: '900',
   },
   subjectName: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1d1d1f',
+    color: '#111827',
     marginBottom: 8,
   },
   metaLabel: {
     fontSize: 11,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 4,
     fontWeight: '700',
   },
   metaValue: {
-    color: '#1d1d1f',
+    color: '#111827',
     fontWeight: 'normal',
   },
   shiftedTimeText: {
-    color: '#ff9500',
+    color: '#F59E0B',
     fontWeight: 'bold',
   },
   originalScheduleLabel: {
     fontSize: 9,
-    color: '#86868b',
+    color: '#6B7280',
     fontStyle: 'italic',
     marginTop: 4,
   },
@@ -1012,15 +1012,15 @@ const styles = StyleSheet.create({
   actionLinkText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#0066cc',
+    color: '#1E5EFF',
   },
   actionLinkDivider: {
-    color: '#eaeaea',
+    color: '#E5E7EB',
     fontSize: 11,
   },
   emptyText: {
     textAlign: 'center',
-    color: '#86868b',
+    color: '#6B7280',
     fontStyle: 'italic',
     marginTop: 40,
   },
@@ -1032,7 +1032,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     padding: 16,
     marginBottom: 16,
   },
@@ -1048,13 +1048,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: '#f4f5f6',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     alignItems: 'center',
     justifyContent: 'center',
   },
   arrowText: {
     fontSize: 10,
-    color: '#1d1d1f',
+    color: '#111827',
     fontWeight: 'bold',
   },
   pickerSelectorRow: {
@@ -1064,7 +1064,7 @@ const styles = StyleSheet.create({
   pickerPill: {
     backgroundColor: '#f4f5f6',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 20,
     paddingVertical: 6,
     paddingHorizontal: 12,
@@ -1072,13 +1072,13 @@ const styles = StyleSheet.create({
   pickerPillText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   calendarWeekHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     borderBottomWidth: 1,
-    borderBottomColor: '#f4f4f4',
+    borderBottomColor: '#E5E7EB',
     paddingBottom: 6,
     marginBottom: 10,
   },
@@ -1086,7 +1086,7 @@ const styles = StyleSheet.create({
     width: 40,
     fontSize: 10,
     fontWeight: '800',
-    color: '#86868b',
+    color: '#6B7280',
     textAlign: 'center',
     textTransform: 'uppercase',
   },
@@ -1109,12 +1109,12 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   gridCellDaySelected: {
-    backgroundColor: '#0066cc',
+    backgroundColor: '#1E5EFF',
   },
   dayNumberText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   dayNumberTextSelected: {
     color: '#ffffff',
@@ -1123,7 +1123,7 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#0066cc',
+    backgroundColor: '#1E5EFF',
     position: 'absolute',
     bottom: 6,
   },
@@ -1134,16 +1134,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     padding: 16,
   },
   timelineHeader: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#86868b',
+    color: '#6B7280',
     marginBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f4f4f4',
+    borderBottomColor: '#E5E7EB',
     paddingBottom: 10,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -1155,11 +1155,11 @@ const styles = StyleSheet.create({
   emptyCalendarText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#86868b',
+    color: '#6B7280',
   },
   emptyCalendarSub: {
     fontSize: 10,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 4,
     textAlign: 'center',
     paddingHorizontal: 20,
@@ -1176,17 +1176,17 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#0066cc',
+    backgroundColor: '#1E5EFF',
     zIndex: 1,
     marginTop: 4,
   },
   timelineNodeShifted: {
-    backgroundColor: '#ff9500',
+    backgroundColor: '#F59E0B',
   },
   timelineLine: {
     width: 1,
     flex: 1,
-    backgroundColor: '#eaeaea',
+    backgroundColor: '#E5E7EB',
     marginVertical: 4,
   },
   timelineDetails: {
@@ -1203,28 +1203,28 @@ const styles = StyleSheet.create({
   timelineTimeText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   timelineCode: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#0066cc',
+    color: '#1E5EFF',
     textTransform: 'uppercase',
   },
   timelineName: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1d1d1f',
+    color: '#111827',
     marginTop: 2,
   },
   timelineClassGroup: {
     fontSize: 10,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 2,
   },
   timelineOriginalLabel: {
     fontSize: 9,
-    color: '#86868b',
+    color: '#6B7280',
     fontStyle: 'italic',
     marginTop: 2,
   },
@@ -1247,7 +1247,7 @@ const styles = StyleSheet.create({
   popupHeading: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -1262,19 +1262,19 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: '#f4f5f6',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 8,
   },
   pickerItemActive: {
-    backgroundColor: '#0066cc',
-    borderColor: '#0066cc',
+    backgroundColor: '#1E5EFF',
+    borderColor: '#1E5EFF',
   },
   pickerItemLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   pickerItemLabelActive: {
     color: '#ffffff',
@@ -1282,12 +1282,12 @@ const styles = StyleSheet.create({
   popupCancel: {
     marginTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#f4f4f4',
+    borderTopColor: '#E5E7EB',
     paddingTop: 12,
     alignItems: 'center',
   },
   popupCancelLabel: {
-    color: '#ff3b30',
+    color: '#EF4444',
     fontWeight: '700',
     fontSize: 13,
   },
@@ -1304,7 +1304,7 @@ const styles = StyleSheet.create({
   dockHeading: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
     marginBottom: 16,
   },
   dockFormScroll: {
@@ -1313,7 +1313,7 @@ const styles = StyleSheet.create({
   formLabel: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#86868b',
+    color: '#6B7280',
     textTransform: 'uppercase',
     marginTop: 14,
     marginBottom: 6,
@@ -1322,7 +1322,7 @@ const styles = StyleSheet.create({
   timeSubLabel: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#86868b',
+    color: '#6B7280',
     textTransform: 'uppercase',
     marginTop: 4,
     letterSpacing: 0.5,
@@ -1330,10 +1330,10 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 8,
     padding: 12,
-    color: '#1d1d1f',
+    color: '#111827',
     fontSize: 13,
     marginBottom: 10,
   },
@@ -1350,28 +1350,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#f4f5f6',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 8,
     padding: 10,
   },
   dayCheckRowActive: {
-    borderColor: '#0066cc',
-    backgroundColor: '#0066cc08',
+    borderColor: '#1E5EFF',
+    backgroundColor: '#1E5EFF08',
   },
   dayCheckBox: {
     width: 16,
     height: 16,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
   },
   dayCheckBoxActive: {
-    backgroundColor: '#0066cc',
-    borderColor: '#0066cc',
+    backgroundColor: '#1E5EFF',
+    borderColor: '#1E5EFF',
   },
   dayCheckBoxCheck: {
     color: '#ffffff',
@@ -1381,10 +1381,10 @@ const styles = StyleSheet.create({
   dayCheckText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   dayCheckTextActive: {
-    color: '#0066cc',
+    color: '#1E5EFF',
     fontWeight: '700',
   },
   dockActionsRow: {
@@ -1392,26 +1392,26 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 18,
     borderTopWidth: 1,
-    borderTopColor: '#f4f4f4',
+    borderTopColor: '#E5E7EB',
     paddingTop: 14,
   },
   dockCancelBtn: {
     flex: 1,
     backgroundColor: '#f4f5f6',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
   },
   dockCancelBtnLabel: {
-    color: '#1d1d1f',
+    color: '#111827',
     fontWeight: '700',
     fontSize: 13,
   },
   dockSubmitBtn: {
     flex: 1.5,
-    backgroundColor: '#0066cc',
+    backgroundColor: '#1E5EFF',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
@@ -1428,7 +1428,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
@@ -1436,22 +1436,22 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   dropdownTriggerActive: {
-    borderColor: '#0066cc',
+    borderColor: '#1E5EFF',
     borderWidth: 1.5,
   },
   dropdownTriggerText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   dropdownChevron: {
     fontSize: 10,
-    color: '#86868b',
+    color: '#6B7280',
   },
   dropdownListInline: {
     backgroundColor: '#ffffff',
     borderWidth: 0.5,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 8,
     marginTop: -4,
     marginBottom: 10,
@@ -1466,17 +1466,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#f4f4f4',
+    borderBottomColor: '#E5E7EB',
   },
   dropdownItemInlineActive: {
-    backgroundColor: '#0066cc08',
+    backgroundColor: '#1E5EFF08',
   },
   dropdownItemTextInline: {
     fontSize: 12,
-    color: '#1d1d1f',
+    color: '#111827',
   },
   dropdownTextActiveInline: {
-    color: '#0066cc',
+    color: '#1E5EFF',
     fontWeight: '700',
   },
 });

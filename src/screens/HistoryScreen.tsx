@@ -142,18 +142,18 @@ export default function HistoryScreen({ logs, role, studentId }: Props) {
     const presentRowsHTML = log.records.map((r) => {
       const isExc = r.status === 'EXCUSED';
       const statusLabel = isExc ? 'EXCUSED' : 'PRESENT';
-      const statusColor = isExc ? '#0066cc' : (r.status === 'LATE' ? '#ff9500' : '#34c759');
+      const statusColor = isExc ? '#1E5EFF' : (r.status === 'LATE' ? '#F59E0B' : '#22C55E');
       const secCode = formatAcademicSection(log.subjectCode, r.year, r.section);
       const detailsText = isExc 
-        ? `<span style="font-size: 11px; font-style: italic; color: #86868b;">Excuse: ${r.excuseReason || ''} (${r.excuseAttachment || ''})</span>`
+        ? `<span style="font-size: 11px; font-style: italic; color: #6B7280;">Excuse: ${r.excuseReason || ''} (${r.excuseAttachment || ''})</span>`
         : `GPS: ${r.latitude.toFixed(5)}, ${r.longitude.toFixed(5)}`;
 
       return `
-        <tr ${isExc ? 'style="background-color: #0066cc03;"' : ''}>
+        <tr ${isExc ? 'style="background-color: #1E5EFF03;"' : ''}>
           <td style="border: 1px solid #ddd; padding: 8px;">${r.studentId}</td>
           <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">
             ${r.studentName}
-            ${r.isIrregular ? '<span style="background-color: #ff950015; border: 1px solid #ff9500; color: #ff9500; font-size: 8px; padding: 2px 4px; border-radius: 3px; margin-left: 5px; font-weight: 900;">IRREGULAR</span>' : ''}
+            ${r.isIrregular ? '<span style="background-color: #F59E0B15; border: 1px solid #F59E0B; color: #F59E0B; font-size: 8px; padding: 2px 4px; border-radius: 3px; margin-left: 5px; font-weight: 900;">IRREGULAR</span>' : ''}
           </td>
           <td style="border: 1px solid #ddd; padding: 8px;">${secCode}</td>
           <td style="border: 1px solid #ddd; padding: 8px;">${r.timestamp}</td>
@@ -169,17 +169,17 @@ export default function HistoryScreen({ logs, role, studentId }: Props) {
     const absentRowsHTML = absentees.map((a) => {
       const secCode = formatAcademicSection(log.subjectCode, a.year, a.section);
       return `
-        <tr style="background-color: #ff3b3005;">
-          <td style="border: 1px solid #ddd; padding: 8px; color: #86868b;">${a.studentId}</td>
-          <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; color: #86868b;">
+        <tr style="background-color: #EF444405;">
+          <td style="border: 1px solid #ddd; padding: 8px; color: #6B7280;">${a.studentId}</td>
+          <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; color: #6B7280;">
             ${a.studentName}
-            ${a.isIrregular ? '<span style="background-color: #ff950015; border: 1px solid #ff9500; color: #ff9500; font-size: 8px; padding: 2px 4px; border-radius: 3px; margin-left: 5px; font-weight: 900;">IRREGULAR</span>' : ''}
+            ${a.isIrregular ? '<span style="background-color: #F59E0B15; border: 1px solid #F59E0B; color: #F59E0B; font-size: 8px; padding: 2px 4px; border-radius: 3px; margin-left: 5px; font-weight: 900;">IRREGULAR</span>' : ''}
           </td>
-          <td style="border: 1px solid #ddd; padding: 8px; color: #86868b;">${secCode}</td>
-          <td style="border: 1px solid #ddd; padding: 8px; color: #86868b;">N/A</td>
-          <td style="border: 1px solid #ddd; padding: 8px; color: #86868b;">N/A</td>
-          <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; color: #ff3b30;">ABSENT</td>
-          <td style="border: 1px solid #ddd; padding: 8px; color: #ff3b30; font-weight: bold;">ABSENT</td>
+          <td style="border: 1px solid #ddd; padding: 8px; color: #6B7280;">${secCode}</td>
+          <td style="border: 1px solid #ddd; padding: 8px; color: #6B7280;">N/A</td>
+          <td style="border: 1px solid #ddd; padding: 8px; color: #6B7280;">N/A</td>
+          <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; color: #EF4444;">ABSENT</td>
+          <td style="border: 1px solid #ddd; padding: 8px; color: #EF4444; font-weight: bold;">ABSENT</td>
         </tr>
       `;
     }).join('');
@@ -189,14 +189,14 @@ export default function HistoryScreen({ logs, role, studentId }: Props) {
         <head>
           <title>Attendance Report - ${log.subjectCode}</title>
           <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 30px; color: #1d1d1f; }
-            h1 { font-size: 24px; font-weight: 800; color: #0066cc; margin-bottom: 5px; }
-            h2 { font-size: 14px; font-weight: 600; color: #86868b; margin-top: 0; margin-bottom: 20px; }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 30px; color: #111827; }
+            h1 { font-size: 24px; font-weight: 800; color: #1E5EFF; margin-bottom: 5px; }
+            h2 { font-size: 14px; font-weight: 600; color: #6B7280; margin-top: 0; margin-bottom: 20px; }
             .meta-box { background: #f4f5f6; padding: 15px; border-radius: 12px; margin-bottom: 25px; border: 1px solid #e5e7eb; display: flex; flex-wrap: wrap; gap: 20px; }
-            .meta-item { font-size: 13px; font-weight: 700; color: #86868b; }
-            .meta-item span { color: #1d1d1f; font-weight: normal; margin-left: 5px; }
+            .meta-item { font-size: 13px; font-weight: 700; color: #6B7280; }
+            .meta-item span { color: #111827; font-weight: normal; margin-left: 5px; }
             table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th { border: 1px solid #ddd; padding: 10px; text-align: left; background-color: #f4f5f6; font-size: 12px; font-weight: 800; text-transform: uppercase; color: #86868b; }
+            th { border: 1px solid #ddd; padding: 10px; text-align: left; background-color: #f4f5f6; font-size: 12px; font-weight: 800; text-transform: uppercase; color: #6B7280; }
             td { font-size: 13px; }
           </style>
         </head>
@@ -355,22 +355,22 @@ export default function HistoryScreen({ logs, role, studentId }: Props) {
                   {role === 'professor' && (
                     <View style={styles.minimalStatsContainer}>
                       <View style={styles.statColumn}>
-                        <Text style={[styles.statValue, { color: '#34c759' }]}>{onTimeCount}</Text>
+                        <Text style={[styles.statValue, { color: '#22C55E' }]}>{onTimeCount}</Text>
                         <Text style={styles.statLabel}>ON-TIME</Text>
                       </View>
                       <View style={styles.statDivider} />
                       <View style={styles.statColumn}>
-                        <Text style={[styles.statValue, { color: '#ff9500' }]}>{lateCount}</Text>
+                        <Text style={[styles.statValue, { color: '#F59E0B' }]}>{lateCount}</Text>
                         <Text style={styles.statLabel}>LATE</Text>
                       </View>
                       <View style={styles.statDivider} />
                       <View style={styles.statColumn}>
-                        <Text style={[styles.statValue, { color: '#0066cc' }]}>{excusedCount}</Text>
+                        <Text style={[styles.statValue, { color: '#1E5EFF' }]}>{excusedCount}</Text>
                         <Text style={styles.statLabel}>EXCUSED</Text>
                       </View>
                       <View style={styles.statDivider} />
                       <View style={styles.statColumn}>
-                        <Text style={[styles.statValue, { color: '#ff3b30' }]}>{absentees.length}</Text>
+                        <Text style={[styles.statValue, { color: '#EF4444' }]}>{absentees.length}</Text>
                         <Text style={styles.statLabel}>ABSENT</Text>
                       </View>
                     </View>
@@ -437,7 +437,7 @@ export default function HistoryScreen({ logs, role, studentId }: Props) {
                                     📍 GPS: {item.isOnline ? `Remote [${record.latitude.toFixed(5)}, ${record.longitude.toFixed(5)}]` : `${record.distanceMeters.toFixed(1)}m from classroom`}
                                   </Text>
                                   {item.isOnline && record.isRemoteStandpoint && (
-                                    <Text style={[styles.distanceText, { color: '#ff9500', fontWeight: 'bold', marginTop: 2 }]}>
+                                    <Text style={[styles.distanceText, { color: '#F59E0B', fontWeight: 'bold', marginTop: 2 }]}>
                                       ⚠️ Off-site: {record.remoteLocationName} ({record.remoteLocationReason})
                                     </Text>
                                   )}
@@ -635,12 +635,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
     letterSpacing: -0.5,
   },
   headerSubtitle: {
     fontSize: 12,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 4,
     lineHeight: 17,
   },
@@ -651,7 +651,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     marginBottom: 16,
     overflow: 'hidden',
   },
@@ -675,24 +675,24 @@ const styles = StyleSheet.create({
   subjectCode: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#0066cc',
+    color: '#1E5EFF',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   deliveryIndicator: {
     fontSize: 10,
-    color: '#86868b',
+    color: '#6B7280',
     fontWeight: '600',
   },
   subjectName: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1d1d1f',
+    color: '#111827',
     marginTop: 4,
   },
   metaRow: {
     fontSize: 11,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 6,
   },
   rightHeaderBadge: {
@@ -701,7 +701,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   summaryStatsMini: {
-    color: '#86868b',
+    color: '#6B7280',
     fontSize: 11,
     fontWeight: '600',
   },
@@ -711,11 +711,11 @@ const styles = StyleSheet.create({
   },
   chevron: {
     fontSize: 10,
-    color: '#86868b',
+    color: '#6B7280',
   },
   expandedContent: {
     borderTopWidth: 1,
-    borderTopColor: '#f4f4f4',
+    borderTopColor: '#E5E7EB',
     paddingHorizontal: 20,
     paddingBottom: 20,
     backgroundColor: '#fafafa',
@@ -740,14 +740,14 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 8,
     fontWeight: '800',
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 4,
     letterSpacing: 0.5,
   },
   statDivider: {
     width: 1,
     height: 24,
-    backgroundColor: '#eaeaea',
+    backgroundColor: '#E5E7EB',
   },
   expandedHeaderRow: {
     flexDirection: 'row',
@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
   expandedTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#86868b',
+    color: '#6B7280',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -767,13 +767,13 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   exportTriggerText: {
-    color: '#0066cc',
+    color: '#1E5EFF',
     fontSize: 11,
     fontWeight: '700',
   },
   emptyRecords: {
     fontSize: 12,
-    color: '#86868b',
+    color: '#6B7280',
     fontStyle: 'italic',
     paddingVertical: 10,
   },
@@ -800,7 +800,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: {
-    color: '#86868b',
+    color: '#6B7280',
     fontWeight: '800',
     fontSize: 10,
   },
@@ -812,29 +812,29 @@ const styles = StyleSheet.create({
   studentNameText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   irregBadge: {
-    backgroundColor: '#ff950010',
-    borderColor: '#ff9500',
+    backgroundColor: '#F59E0B10',
+    borderColor: '#F59E0B',
     borderWidth: 0.5,
     borderRadius: 3,
     paddingHorizontal: 4,
     paddingVertical: 1,
   },
   irregBadgeText: {
-    color: '#ff9500',
+    color: '#F59E0B',
     fontSize: 7,
     fontWeight: '900',
   },
   studentIdText: {
     fontSize: 10,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 2,
   },
   distanceText: {
     fontSize: 10,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 2,
   },
   excuseTextRow: {
@@ -845,19 +845,19 @@ const styles = StyleSheet.create({
   },
   excuseTextLabel: {
     fontSize: 10,
-    color: '#0066cc',
+    color: '#1E5EFF',
     fontWeight: '500',
   },
   attachmentLinkPill: {
-    backgroundColor: '#0066cc15',
+    backgroundColor: '#1E5EFF15',
     borderRadius: 10,
     paddingVertical: 2,
     paddingHorizontal: 8,
     borderWidth: 0.5,
-    borderColor: '#0066cc50',
+    borderColor: '#1E5EFF50',
   },
   attachmentLinkText: {
-    color: '#0066cc',
+    color: '#1E5EFF',
     fontSize: 8,
     fontWeight: '800',
   },
@@ -867,19 +867,19 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   textGreen: {
-    color: '#34c759',
+    color: '#22C55E',
   },
   textLate: {
-    color: '#ff9500',
+    color: '#F59E0B',
   },
   textExcused: {
-    color: '#0066cc',
+    color: '#1E5EFF',
   },
   textRed: {
-    color: '#ff3b30',
+    color: '#EF4444',
   },
   emptyLogsText: {
-    color: '#86868b',
+    color: '#6B7280',
     textAlign: 'center',
     marginTop: 40,
     fontStyle: 'italic',
@@ -888,13 +888,13 @@ const styles = StyleSheet.create({
   absentSection: {
     marginTop: 20,
     borderTopWidth: 1,
-    borderTopColor: '#eaeaea',
+    borderTopColor: '#E5E7EB',
     paddingTop: 14,
   },
   absentSectionTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#ff3b30',
+    color: '#EF4444',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
@@ -908,15 +908,15 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f0f0f0',
   },
   avatarAbsent: {
-    backgroundColor: '#ff3b300d',
+    backgroundColor: '#EF44440d',
   },
   absentNameText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#86868b',
+    color: '#6B7280',
   },
   absentBadgeLabel: {
-    color: '#ff3b30',
+    color: '#EF4444',
     fontSize: 9,
     fontWeight: '800',
   },
@@ -927,7 +927,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 14,
     borderTopWidth: 1,
-    borderTopColor: '#eaeaea',
+    borderTopColor: '#E5E7EB',
     marginTop: 10,
     backgroundColor: '#ffffff',
   },
@@ -936,7 +936,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     backgroundColor: '#f4f5f6',
     borderWidth: 1,
-    borderColor: '#eaeaea',
+    borderColor: '#E5E7EB',
     borderRadius: 8,
   },
   pageBtnDisabled: {
@@ -946,7 +946,7 @@ const styles = StyleSheet.create({
   pageBtnLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#0066cc',
+    color: '#1E5EFF',
   },
   pageBtnLabelDisabled: {
     color: '#d2d2d7',
@@ -954,7 +954,7 @@ const styles = StyleSheet.create({
   pageIndicatorText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#86868b',
+    color: '#6B7280',
   },
   // Lightbox overlay styles
   lightboxOverlay: {
@@ -979,17 +979,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f4f4f4',
+    borderBottomColor: '#E5E7EB',
     paddingBottom: 10,
   },
   lightboxTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   lightboxSubtitle: {
     fontSize: 11,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 2,
   },
   lightboxCloseBtn: {
@@ -1003,7 +1003,7 @@ const styles = StyleSheet.create({
   lightboxCloseText: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#86868b',
+    color: '#6B7280',
   },
   lightboxImageContainer: {
     flex: 1,
@@ -1019,7 +1019,7 @@ const styles = StyleSheet.create({
   },
   lightboxFooterText: {
     fontSize: 9,
-    color: '#34c759',
+    color: '#22C55E',
     fontWeight: '700',
     textAlign: 'center',
     marginTop: 14,
@@ -1046,12 +1046,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalHeading: {
-    color: '#1d1d1f',
+    color: '#111827',
     fontSize: 16,
     fontWeight: '800',
   },
   modalSubtitle: {
-    color: '#86868b',
+    color: '#6B7280',
     fontSize: 11,
     marginTop: 4,
     lineHeight: 16,
@@ -1078,11 +1078,11 @@ const styles = StyleSheet.create({
   modalOptionLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1d1d1f',
+    color: '#111827',
   },
   modalOptionSub: {
     fontSize: 10,
-    color: '#86868b',
+    color: '#6B7280',
     marginTop: 2,
   },
   modalCancelBtn: {
@@ -1095,7 +1095,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalCancelText: {
-    color: '#1d1d1f',
+    color: '#111827',
     fontWeight: '700',
     fontSize: 13,
   },
