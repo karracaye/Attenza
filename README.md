@@ -6,16 +6,16 @@ Built with a clean, user-friendly interface, Attenza provides students with an e
 
 ## 📱 Features
 
-📸 Real-time selfie attendance
-📍 GPS location verification
-🕒 Automatic date and time recording
-👤 Face verification for identity confirmation
-👨‍🏫 Professor dashboard for attendance management
-👨‍🎓 Student attendance history
-📊 Attendance analytics and reports
-🔔 Notifications and attendance reminders
-📱 Responsive and modern user interface
-🔒 Secure authentication and user management
+1. 📸 Real-time selfie attendance
+2. 📍 GPS location verification
+3. 🕒 Automatic date and time recording
+4. 👤 Face verification for identity confirmation
+5. 👨‍🏫 Professor dashboard for attendance management
+6. 👨‍🎓 Student attendance history
+7. 📊 Attendance analytics and reports
+8. 🔔 Notifications and attendance reminders
+9. 📱 Responsive and modern user interface
+10. 🔒 Secure authentication and user management
 
 ---
 
