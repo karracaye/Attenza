@@ -1,6 +1,6 @@
-# ByteConnect (IT Department Edition) 🚀
+# Attenza 🚀
 
-ByteConnect is an ultra-modern, Discord- and Reddit-inspired mobile application built with **React Native (TypeScript)** and **Expo**. It is designed exclusively for a single IT/CS department to connect students, staff, and organizers in one unified, database-free environment utilizing local AsyncStorage persistence.
+Attenza is an ultra-modern, Discord- and Reddit-inspired mobile application built with **React Native (TypeScript)** and **Expo**. It is designed exclusively for a single IT/CS department to connect students, staff, and organizers in one unified, database-free environment utilizing local AsyncStorage persistence.
 
 ## 📱 Features
 
