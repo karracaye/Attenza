@@ -304,7 +304,7 @@ export default function ProfessorDashboard({
                           )}
                         </View>
                         <Text style={styles.studentIdText}>
-                          ID: {record.studentId} • {formatAcademicSection(activeSession?.subjectCode || 'CS', record.year, record.section)} • {record.timestamp}
+                          ID: {record.studentId} • {formatAcademicSection(activeSession?.subjectId || 'CS', record.year, record.section)} • {record.timestamp}
                         </Text>
                       </View>
                     </View>
