@@ -65,6 +65,7 @@ export interface AttendanceSessionLog {
   isOnline: boolean;
   year?: string;
   section?: string;
+  professorId?: string;
 }
 
 export const INITIAL_SUBJECTS: Subject[] = [

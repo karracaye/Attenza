@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { formatAcademicSection } from './HistoryScreen';
+import { AttendanceSessionLog } from '../data/mockData';
 
 interface PendingExcuse {
   id: string;
@@ -32,6 +33,8 @@ interface Props {
   onNavigateToLauncher: () => void;
   onNavigateToSubjects: () => void;
   onNavigateToHistory: () => void;
+  historyLogs: AttendanceSessionLog[];
+  isDarkMode?: boolean;
 }
 
 const INITIAL_EXCUSES: PendingExcuse[] = [
@@ -75,7 +78,29 @@ export default function ProfessorDashboardScreen({
   onNavigateToLauncher,
   onNavigateToSubjects,
   onNavigateToHistory,
+  historyLogs = [],
+  isDarkMode = false,
 }: Props) {
+  const colors = {
+    bg: isDarkMode ? '#111827' : '#FAFBFC',
+    text: isDarkMode ? '#F9FAFB' : '#111827',
+    subText: isDarkMode ? '#9CA3AF' : '#6B7280',
+    cardBg: isDarkMode ? '#1F2937' : '#ffffff',
+    border: isDarkMode ? '#374151' : '#E5E7EB',
+  };
+
+  // Calculate dynamic metrics
+  const sessionsCount = historyLogs.length;
+  let totalPresentCount = 0;
+  let totalStudentsExpected = 0;
+  historyLogs.forEach(log => {
+    totalPresentCount += log.totalPresent;
+    totalStudentsExpected += log.records.length;
+  });
+  const avgAttendance = totalStudentsExpected > 0 
+    ? ((totalPresentCount / totalStudentsExpected) * 100).toFixed(1) 
+    : '0.0';
+
   const [excuses, setExcuses] = useState<PendingExcuse[]>(INITIAL_EXCUSES);
   const [selectedExcuse, setSelectedExcuse] = useState<PendingExcuse | null>(null);
   const [isLightboxVisible, setIsLightboxVisible] = useState(false);
@@ -122,7 +147,7 @@ export default function ProfessorDashboardScreen({
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.bg }]}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -144,12 +169,12 @@ export default function ProfessorDashboardScreen({
       </View>
 
       {/* Start Roll Call Shortcut Card */}
-      <View style={styles.launcherCard}>
+      <View style={[styles.launcherCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
         <View style={styles.launcherHeaderRow}>
           <Text style={styles.launcherEmoji}>🚀</Text>
           <View style={{ flex: 1 }}>
-            <Text style={styles.launcherTitle}>Start Attendance Roll Call</Text>
-            <Text style={styles.launcherSub}>
+            <Text style={[styles.launcherTitle, { color: colors.text }]}>Start Attendance Roll Call</Text>
+            <Text style={[styles.launcherSub, { color: colors.subText }]}>
               Set subject, target classroom coordinates, delivery mode, and display secure QR code for students.
             </Text>
           </View>
@@ -160,37 +185,37 @@ export default function ProfessorDashboardScreen({
       </View>
 
       {/* Summary Statistics Panels */}
-      <Text style={styles.sectionHeaderTitle}>📈 Academic Stats Summary</Text>
+      <Text style={[styles.sectionHeaderTitle, { color: colors.text }]}>📈 Academic Stats Summary</Text>
       <View style={styles.statsGrid}>
         <View style={styles.statsRow}>
           {/* Average Attendance rate */}
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Avg Attendance</Text>
-            <Text style={[styles.statVal, { color: '#22C55E' }]}>92.4%</Text>
-            <Text style={styles.statSub}>Target: &gt; 90%</Text>
+          <View style={[styles.statBox, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+            <Text style={[styles.statLabel, { color: colors.subText }]}>Avg Attendance</Text>
+            <Text style={[styles.statVal, { color: '#22C55E' }]}>{avgAttendance}%</Text>
+            <Text style={[styles.statSub, { color: colors.subText }]}>{sessionsCount > 0 ? 'Target: > 90%' : 'No sessions run'}</Text>
           </View>
 
           {/* Pending excuses letters */}
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Excuse Queue</Text>
-            <Text style={[styles.statVal, excuses.length > 0 ? { color: '#F59E0B' } : { color: '#111827' }]}>
+          <View style={[styles.statBox, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+            <Text style={[styles.statLabel, { color: colors.subText }]}>Excuse Queue</Text>
+            <Text style={[styles.statVal, excuses.length > 0 ? { color: '#F59E0B' } : { color: colors.text }]}>
               {excuses.length} Pending
             </Text>
-            <Text style={styles.statSub}>Action required</Text>
+            <Text style={[styles.statSub, { color: colors.subText }]}>Action required</Text>
           </View>
         </View>
 
         <View style={styles.statsRow}>
-          {/* Security lock state */}
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Device Lockout</Text>
-            <Text style={[styles.statVal, { color: '#22C55E' }]}>Secured</Text>
-            <Text style={styles.statSub}>One device lock active</Text>
+          {/* Sessions Run */}
+          <View style={[styles.statBox, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+            <Text style={[styles.statLabel, { color: colors.subText }]}>Sessions Run</Text>
+            <Text style={[styles.statVal, { color: colors.text }]}>{sessionsCount}</Text>
+            <Text style={[styles.statSub, { color: colors.subText }]}>{sessionsCount === 1 ? '1 session logged' : `${sessionsCount} sessions logged`}</Text>
           </View>
 
           {/* Quick links to Logs */}
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Past Records</Text>
+          <View style={[styles.statBox, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+            <Text style={[styles.statLabel, { color: colors.subText }]}>Past Records</Text>
             <TouchableOpacity onPress={onNavigateToHistory}>
               <Text style={styles.statLink}>View History Logs ➔</Text>
             </TouchableOpacity>
@@ -199,49 +224,49 @@ export default function ProfessorDashboardScreen({
       </View>
 
       {/* Today's Teaching Timeline */}
-      <Text style={styles.sectionHeaderTitle}>📅 Today's Timetable Schedule</Text>
-      <View style={styles.scheduleCard}>
+      <Text style={[styles.sectionHeaderTitle, { color: colors.text }]}>📅 Today's Timetable Schedule</Text>
+      <View style={[styles.scheduleCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
         {/* Course 1 */}
-        <View style={styles.scheduleItem}>
+        <View style={[styles.scheduleItem, { borderBottomColor: colors.border }]}>
           <View style={styles.scheduleTimeBox}>
-            <Text style={styles.timeLabel}>08:00 AM</Text>
-            <Text style={styles.timeSub}>2 Hours</Text>
+            <Text style={[styles.timeLabel, { color: colors.text }]}>08:00 AM</Text>
+            <Text style={[styles.timeSub, { color: colors.subText }]}>2 Hours</Text>
           </View>
           <View style={styles.scheduleInfo}>
-            <Text style={styles.courseCode}>CS 402</Text>
-            <Text style={styles.courseName}>Software Engineering (4th Year)</Text>
-            <Text style={styles.courseLocation}>🏫 Room 302 (F2F Session)</Text>
+            <Text style={[styles.courseCode, { color: colors.text }]}>CS 402</Text>
+            <Text style={[styles.courseName, { color: colors.text }]}>Software Engineering (4th Year)</Text>
+            <Text style={[styles.courseLocation, { color: colors.subText }]}>🏫 Room 302 (F2F Session)</Text>
           </View>
         </View>
 
         {/* Course 2 */}
         <View style={[styles.scheduleItem, { borderBottomWidth: 0, paddingBottom: 0, marginBottom: 0 }]}>
           <View style={styles.scheduleTimeBox}>
-            <Text style={styles.timeLabel}>10:30 AM</Text>
-            <Text style={styles.timeSub}>3 Hours</Text>
+            <Text style={[styles.timeLabel, { color: colors.text }]}>10:30 AM</Text>
+            <Text style={[styles.timeSub, { color: colors.subText }]}>3 Hours</Text>
           </View>
           <View style={styles.scheduleInfo}>
-            <Text style={styles.courseCode}>IT 204</Text>
-            <Text style={styles.courseName}>Mobile Application Development (3rd Year)</Text>
-            <Text style={styles.courseLocation}>🌐 Online Virtual Session</Text>
+            <Text style={[styles.courseCode, { color: colors.text }]}>IT 204</Text>
+            <Text style={[styles.courseName, { color: colors.text }]}>Mobile Application Development (3rd Year)</Text>
+            <Text style={[styles.courseLocation, { color: colors.subText }]}>🌐 Online Virtual Session</Text>
           </View>
         </View>
       </View>
 
       {/* Pending Excuse Queue */}
-      <Text style={styles.sectionHeaderTitle}>✉️ Pending Excuse Letters ({excuses.length})</Text>
+      <Text style={[styles.sectionHeaderTitle, { color: colors.text }]}>✉️ Pending Excuse Letters ({excuses.length})</Text>
       {excuses.length === 0 ? (
-        <View style={styles.emptyExcuseCard}>
-          <Text style={styles.emptyExcuseText}>🎉 All excuses processed</Text>
-          <Text style={styles.emptyExcuseSub}>No pending student excuse letters in queue.</Text>
+        <View style={[styles.emptyExcuseCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+          <Text style={[styles.emptyExcuseText, { color: colors.text }]}>🎉 All excuses processed</Text>
+          <Text style={[styles.emptyExcuseSub, { color: colors.subText }]}>No pending student excuse letters in queue.</Text>
         </View>
       ) : (
         paginatedExcuses.map((exc) => (
-          <View key={exc.id} style={styles.excuseCard}>
-            <View style={styles.excuseHeader}>
+          <View key={exc.id} style={[styles.excuseCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+            <View style={[styles.excuseHeader, { borderBottomColor: colors.border }]}>
               <View>
-                <Text style={styles.excuseStudentName}>{exc.studentName}</Text>
-                <Text style={styles.excuseStudentDetails}>
+                <Text style={[styles.excuseStudentName, { color: colors.text }]}>{exc.studentName}</Text>
+                <Text style={[styles.excuseStudentDetails, { color: colors.subText }]}>
                   ID: {exc.studentId} • {formatAcademicSection(exc.subjectCode, exc.year, exc.section)}
                 </Text>
               </View>
@@ -251,15 +276,15 @@ export default function ProfessorDashboardScreen({
             </View>
 
             <View style={styles.excuseBody}>
-              <Text style={styles.excuseReasonText}>
-                <Text style={{ fontWeight: '700', color: '#111827' }}>Reason: </Text>
+              <Text style={[styles.excuseReasonText, { color: colors.text }]}>
+                <Text style={{ fontWeight: '700', color: colors.text }}>Reason: </Text>
                 {exc.excuseReason}
               </Text>
               <TouchableOpacity 
-                style={styles.excuseFileBox} 
+                style={[styles.excuseFileBox, { backgroundColor: isDarkMode ? '#11182740' : '#FAFBFC', borderColor: colors.border }]} 
                 onPress={() => handleOpenLetter(exc)}
               >
-                <Text style={styles.excuseFileText}>📎 {exc.excuseAttachment}</Text>
+                <Text style={[styles.excuseFileText, { color: colors.text }]}>📎 {exc.excuseAttachment}</Text>
                 <Text style={styles.excuseViewText}>View Document</Text>
               </TouchableOpacity>
             </View>

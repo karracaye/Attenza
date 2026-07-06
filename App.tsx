@@ -41,7 +41,12 @@ import {
   UserAccount,
   getClassrooms,
   saveClassrooms,
-} from './src/data/storage';
+  startProfessorSession,
+  endProfessorSession,
+  getLiveSessionRecords,
+  submitStudentCheckIn,
+  submitStudentExcuse,
+} from './src/services/api';
 
 import {
   Subject,
@@ -62,10 +67,11 @@ import HistoryScreen, { formatAcademicSection } from './src/screens/HistoryScree
 import ProfessorSubjectsScreen from './src/screens/ProfessorSubjectsScreen';
 import AuthScreen from './src/screens/AuthScreen';
 import StudentTimetableScreen from './src/screens/StudentTimetableScreen';
+import ProfessorProfileScreen from './src/screens/ProfessorProfileScreen';
 
 type RoleType = 'professor' | 'student';
 type StudentTab = 'dashboard' | 'checkin' | 'timetable' | 'history' | 'profile';
-type ProfessorTab = 'dashboard' | 'launcher' | 'subjects' | 'history';
+type ProfessorTab = 'dashboard' | 'launcher' | 'subjects' | 'history' | 'profile';
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -133,11 +139,6 @@ export default function App() {
     async function loadData() {
       const startTime = Date.now();
       await initializeData();
-      const session = await getActiveSession();
-      const logs = await getHistoryLogs();
-      const profile = await getStudentProfile();
-      const subjects = await getProfessorSubjects();
-      const rooms = await getClassrooms();
       
       const user = await getCurrentUser();
       if (user) {
@@ -145,6 +146,12 @@ export default function App() {
         setRole(user.role);
         setIsAuthenticated(true);
       }
+
+      const session = await getActiveSession();
+      const logs = await getHistoryLogs(user?.role, user?.usernameId);
+      const profile = await getStudentProfile(user?.usernameId);
+      const subjects = await getProfessorSubjects(user?.usernameId);
+      const rooms = await getClassrooms();
 
       setActiveSession(session);
       setHistoryLogs(logs);
@@ -170,11 +177,34 @@ export default function App() {
     loadData();
   }, []);
 
-  // Sync active session live check-ins simulation
+  // Sync active session live check-ins database polling
   useEffect(() => {
     if (!activeSession) {
       setLiveRecords([]);
+      return;
     }
+
+    const fetchLiveRecords = async () => {
+      try {
+        const records = await getLiveSessionRecords(activeSession.id);
+        if (records) {
+          const normalized = records.map(r => ({
+            ...r,
+            qrVerified: !!r.qr_verified,
+            selfieVerified: !!r.selfie_verified,
+            gpsVerified: !!r.gps_verified,
+            verified: true,
+          }));
+          setLiveRecords(normalized);
+        }
+      } catch (err) {
+        console.warn('Polling live records error:', err);
+      }
+    };
+    
+    fetchLiveRecords();
+    const interval = setInterval(fetchLiveRecords, 2000);
+    return () => clearInterval(interval);
   }, [activeSession]);
 
   // Handler: Auth success callback
@@ -183,11 +213,11 @@ export default function App() {
     setRole(selectedRole);
     setIsAuthenticated(true);
 
-    // Reload context details from AsyncStorage
+    // Reload context details from Server
     const session = await getActiveSession();
-    const logs = await getHistoryLogs();
-    const profile = await getStudentProfile();
-    const subjects = await getProfessorSubjects();
+    const logs = await getHistoryLogs(selectedRole, user.usernameId);
+    const profile = await getStudentProfile(user.usernameId);
+    const subjects = await getProfessorSubjects(user.usernameId);
 
     setActiveSession(session);
     setHistoryLogs(logs);
@@ -242,7 +272,7 @@ export default function App() {
     };
 
     setActiveSession(newSession);
-    await saveActiveSession(newSession);
+    await startProfessorSession(newSession);
   };
 
   // Handler: Register custom classroom standpoint
@@ -253,7 +283,7 @@ export default function App() {
   };
 
   // Handler: Student submits check-in
-  const handleStudentCheckInSubmit = (record: StudentCheckInRecord) => {
+  const handleStudentCheckInSubmit = async (record: StudentCheckInRecord) => {
     // Append to live session roster
     const exists = liveRecords.some(r => r.studentId === record.studentId);
     if (exists) {
@@ -276,6 +306,7 @@ export default function App() {
     }
 
     setLiveRecords([...liveRecords, record]);
+    await submitStudentCheckIn(record);
   };
 
   // Handler: Student submits excuse waiver without scanning QR code
@@ -344,7 +375,7 @@ export default function App() {
       isIrregular: studentProfile.isIrregular,
     };
 
-    await savePendingExcuses([...pending, newExcuse]);
+    await submitStudentExcuse(newExcuse);
     Alert.alert('Waiver Registered', 'Your excuse letter is queued for today\'s session. It will sync automatically when your professor completes roll call.');
   };
 
@@ -420,16 +451,14 @@ export default function App() {
 
     const updatedLogs = [newLog, ...historyLogs];
     setHistoryLogs(updatedLogs);
-    await saveHistoryLogs(updatedLogs);
-
+    await endProfessorSession(activeSession, combinedRecords);
     setActiveSession(null);
-    await clearActiveSession();
   };
 
   // Handler: Save dynamic professor semester subjects
   const handleSaveProfessorSubjects = async (updatedList: ProfessorSubject[]) => {
     setProfessorSubjects(updatedList);
-    await saveProfessorSubjects(updatedList);
+    await saveProfessorSubjects(updatedList, currentUser?.usernameId);
   };
 
   // Switch role and update view
@@ -463,6 +492,8 @@ export default function App() {
               onNavigateToLauncher={() => setProfessorTab('launcher')}
               onNavigateToSubjects={() => setProfessorTab('subjects')}
               onNavigateToHistory={() => setProfessorTab('history')}
+              historyLogs={historyLogs}
+              isDarkMode={isDarkMode}
             />
           );
         case 'launcher':
@@ -475,6 +506,7 @@ export default function App() {
               onEndSession={handleEndSession}
               liveRecords={liveRecords}
               onRegisterClassroom={handleRegisterClassroom}
+              isDarkMode={isDarkMode}
             />
           );
         case 'subjects':
@@ -482,6 +514,7 @@ export default function App() {
             <ProfessorSubjectsScreen
               subjects={professorSubjects}
               onSaveSubjects={handleSaveProfessorSubjects}
+              isDarkMode={isDarkMode}
             />
           );
         case 'history':
@@ -489,6 +522,21 @@ export default function App() {
             <HistoryScreen
               logs={historyLogs}
               role="professor"
+              isDarkMode={isDarkMode}
+            />
+          );
+        case 'profile':
+          return (
+            <ProfessorProfileScreen
+              onLogout={handleLogout}
+              isDarkMode={isDarkMode}
+              setIsDarkMode={setIsDarkMode}
+              appLanguage={appLanguage}
+              setAppLanguage={setAppLanguage}
+              appFontSize={appFontSize}
+              setAppFontSize={setAppFontSize}
+              currentUserName={currentUser?.name || 'Dr. Jane Smith'}
+              historyLogs={historyLogs}
             />
           );
       }
@@ -500,6 +548,8 @@ export default function App() {
               studentProfile={studentProfile}
               activeSession={activeSession}
               onNavigateToCheckIn={() => setStudentTab('checkin')}
+              historyLogs={historyLogs}
+              isDarkMode={isDarkMode}
             />
           );
         case 'checkin':
@@ -511,16 +561,18 @@ export default function App() {
               classroomCoords={classrooms}
               onSubmitGeneralExcuse={handleStudentGeneralExcuseSubmit}
               subjects={INITIAL_SUBJECTS}
+              isDarkMode={isDarkMode}
             />
           );
         case 'timetable':
-          return <StudentTimetableScreen />;
+          return <StudentTimetableScreen isDarkMode={isDarkMode} />;
         case 'history':
           return (
             <HistoryScreen
               logs={historyLogs}
               role="student"
               studentId={studentProfile.studentId}
+              isDarkMode={isDarkMode}
             />
           );
         case 'profile':
@@ -530,11 +582,11 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="dark" />
-      <View style={styles.appContainer}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: isDarkMode ? '#111827' : '#ffffff' }]}>
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+      <View style={[styles.appContainer, { backgroundColor: isDarkMode ? '#111827' : '#ffffff' }]}>
         {showSplash ? (
-          <Animated.View style={[styles.splashOverlay, { opacity: splashOpacity }]}>
+          <Animated.View style={[styles.splashOverlay, { opacity: splashOpacity, backgroundColor: isDarkMode ? '#111827' : '#ffffff' }]}>
             <View style={styles.splashContent}>
               <Animated.Image
                 source={require('./assets/logo.png')}
@@ -546,21 +598,32 @@ export default function App() {
                 ]}
                 resizeMode="contain"
               />
-              <ActivityIndicator size="small" color="#001833" style={styles.splashLoader} />
-              <Text style={styles.splashVersion}>Version 1.0</Text>
+              <ActivityIndicator size="small" color={isDarkMode ? '#ffffff' : '#001833'} style={styles.splashLoader} />
+              <Text style={[styles.splashVersion, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Version 1.0</Text>
             </View>
           </Animated.View>
         ) : !isAuthenticated ? (
-          <AuthScreen onLoginSuccess={handleLoginSuccess} />
+          <AuthScreen onLoginSuccess={handleLoginSuccess} isDarkMode={isDarkMode} />
         ) : (
           <>
-            <View style={styles.appHeader}>
-              <Image source={require('./assets/icon.png')} style={styles.headerLogo} resizeMode="contain" />
+            <View style={[styles.appHeader, { backgroundColor: isDarkMode ? '#1F2937' : '#ffffff', borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB' }]}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (role === 'student') {
+                    setStudentTab('dashboard');
+                  } else {
+                    setProfessorTab('dashboard');
+                  }
+                }}
+                activeOpacity={0.7}
+              >
+                <Image source={require('./assets/icon.png')} style={styles.headerLogo} resizeMode="contain" />
+              </TouchableOpacity>
               
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, position: 'relative', zIndex: 1000 }}>
-                <TouchableOpacity style={styles.roleTogglePill} onPress={toggleRole}>
-                  <Text style={styles.roleToggleText}>
-                    Role: <Text style={styles.roleTextHighlight}>{role.toUpperCase()}</Text>
+                <TouchableOpacity style={[styles.roleTogglePill, { backgroundColor: isDarkMode ? '#374151' : '#F3F4F6' }]} onPress={toggleRole}>
+                  <Text style={[styles.roleToggleText, { color: isDarkMode ? '#E5E7EB' : '#374151' }]}>
+                    Role: <Text style={styles.roleTextHighlight}>{currentUser?.name || role.toUpperCase()}</Text>
                   </Text>
                 </TouchableOpacity>
 
@@ -569,7 +632,7 @@ export default function App() {
                   onPress={() => Alert.alert('🔔 Notifications', 'No new class session updates at the moment.')}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="notifications-outline" size={22} color="#111827" />
+                  <Ionicons name="notifications-outline" size={22} color={isDarkMode ? '#F3F4F6' : '#111827'} />
                   <View 
                     style={{ 
                       position: 'absolute', 
@@ -589,12 +652,12 @@ export default function App() {
                   onPress={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="ellipsis-vertical" size={20} color="#111827" />
+                  <Ionicons name="ellipsis-vertical" size={20} color={isDarkMode ? '#F3F4F6' : '#111827'} />
                 </TouchableOpacity>
 
                 {/* Settings & Logout Dropdown Menu */}
                 {isRoleDropdownOpen && (
-                  <View style={[styles.roleDropdownMenu, { top: 40, right: 0 }]}>
+                  <View style={[styles.roleDropdownMenu, { top: 40, right: 0, backgroundColor: isDarkMode ? '#1F2937' : '#ffffff', borderColor: isDarkMode ? '#374151' : '#E5E7EB' }]}>
                     <TouchableOpacity 
                       style={styles.dropdownMenuItem}
                       onPress={() => {
@@ -602,15 +665,15 @@ export default function App() {
                         if (role === 'student') {
                           setStudentTab('profile');
                         } else {
-                          setProfessorTab('subjects');
+                          setProfessorTab('profile');
                         }
                       }}
                     >
-                      <Ionicons name="settings-outline" size={15} color="#111827" style={{ marginRight: 8 }} />
-                      <Text style={styles.dropdownMenuItemText}>Settings</Text>
+                      <Ionicons name="settings-outline" size={15} color={isDarkMode ? '#F3F4F6' : '#111827'} style={{ marginRight: 8 }} />
+                      <Text style={[styles.dropdownMenuItemText, { color: isDarkMode ? '#F3F4F6' : '#111827' }]}>Settings</Text>
                     </TouchableOpacity>
 
-                    <View style={styles.dropdownMenuDivider} />
+                    <View style={[styles.dropdownMenuDivider, { backgroundColor: isDarkMode ? '#374151' : '#E5E7EB' }]} />
 
                     <TouchableOpacity 
                       style={styles.dropdownMenuItem}
@@ -628,10 +691,10 @@ export default function App() {
             </View>
 
             {/* Content View */}
-            <View style={styles.mainContent}>{renderActiveScreen()}</View>
+            <View style={[styles.mainContent, { backgroundColor: isDarkMode ? '#111827' : '#ffffff' }]}>{renderActiveScreen()}</View>
 
             {/* Dynamic Bottom Navigation tab bar depending on Role */}
-            <View style={styles.tabBar}>
+            <View style={[styles.tabBar, { backgroundColor: isDarkMode ? '#1F2937' : '#ffffff', borderTopColor: isDarkMode ? '#374151' : '#E5E7EB' }]}>
               {role === 'professor' ? (
                 <>
                   <TouchableOpacity
@@ -642,9 +705,9 @@ export default function App() {
                     <Ionicons
                       name={professorTab === 'dashboard' ? 'grid' : 'grid-outline'}
                       size={20}
-                      color={professorTab === 'dashboard' ? '#1E5EFF' : '#6B7280'}
+                      color={professorTab === 'dashboard' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')}
                     />
-                    <Text style={[styles.tabLabel, professorTab === 'dashboard' && styles.tabLabelActive]}>
+                    <Text style={[styles.tabLabel, professorTab === 'dashboard' && styles.tabLabelActive, { color: professorTab === 'dashboard' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280') }]}>
                       Dashboard
                     </Text>
                   </TouchableOpacity>
@@ -657,9 +720,9 @@ export default function App() {
                     <Ionicons
                       name={professorTab === 'launcher' ? 'rocket' : 'rocket-outline'}
                       size={20}
-                      color={professorTab === 'launcher' ? '#1E5EFF' : '#6B7280'}
+                      color={professorTab === 'launcher' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')}
                     />
-                    <Text style={[styles.tabLabel, professorTab === 'launcher' && styles.tabLabelActive]}>
+                    <Text style={[styles.tabLabel, professorTab === 'launcher' && styles.tabLabelActive, { color: professorTab === 'launcher' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280') }]}>
                       Roll Call
                     </Text>
                   </TouchableOpacity>
@@ -672,9 +735,9 @@ export default function App() {
                     <Ionicons
                       name={professorTab === 'subjects' ? 'book' : 'book-outline'}
                       size={20}
-                      color={professorTab === 'subjects' ? '#1E5EFF' : '#6B7280'}
+                      color={professorTab === 'subjects' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')}
                     />
-                    <Text style={[styles.tabLabel, professorTab === 'subjects' && styles.tabLabelActive]}>
+                    <Text style={[styles.tabLabel, professorTab === 'subjects' && styles.tabLabelActive, { color: professorTab === 'subjects' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280') }]}>
                       Subjects
                     </Text>
                   </TouchableOpacity>
@@ -687,9 +750,9 @@ export default function App() {
                     <Ionicons
                       name={professorTab === 'history' ? 'calendar' : 'calendar-outline'}
                       size={20}
-                      color={professorTab === 'history' ? '#1E5EFF' : '#6B7280'}
+                      color={professorTab === 'history' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')}
                     />
-                    <Text style={[styles.tabLabel, professorTab === 'history' && styles.tabLabelActive]}>
+                    <Text style={[styles.tabLabel, professorTab === 'history' && styles.tabLabelActive, { color: professorTab === 'history' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280') }]}>
                       Logs
                     </Text>
                   </TouchableOpacity>
@@ -704,9 +767,9 @@ export default function App() {
                     <Ionicons
                       name={studentTab === 'dashboard' ? 'home' : 'home-outline'}
                       size={20}
-                      color={studentTab === 'dashboard' ? '#1E5EFF' : '#6B7280'}
+                      color={studentTab === 'dashboard' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')}
                     />
-                    <Text style={[styles.tabLabel, studentTab === 'dashboard' && styles.tabLabelActive]}>
+                    <Text style={[styles.tabLabel, studentTab === 'dashboard' && styles.tabLabelActive, { color: studentTab === 'dashboard' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280') }]}>
                       Dashboard
                     </Text>
                   </TouchableOpacity>
@@ -719,9 +782,9 @@ export default function App() {
                     <Ionicons
                       name={studentTab === 'checkin' ? 'qr-code' : 'qr-code-outline'}
                       size={20}
-                      color={studentTab === 'checkin' ? '#1E5EFF' : '#6B7280'}
+                      color={studentTab === 'checkin' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')}
                     />
-                    <Text style={[styles.tabLabel, studentTab === 'checkin' && styles.tabLabelActive]}>
+                    <Text style={[styles.tabLabel, studentTab === 'checkin' && styles.tabLabelActive, { color: studentTab === 'checkin' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280') }]}>
                       Check In
                     </Text>
                   </TouchableOpacity>
@@ -734,9 +797,9 @@ export default function App() {
                     <Ionicons
                       name={studentTab === 'timetable' ? 'calendar' : 'calendar-outline'}
                       size={20}
-                      color={studentTab === 'timetable' ? '#1E5EFF' : '#6B7280'}
+                      color={studentTab === 'timetable' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')}
                     />
-                    <Text style={[styles.tabLabel, studentTab === 'timetable' && styles.tabLabelActive]}>
+                    <Text style={[styles.tabLabel, studentTab === 'timetable' && styles.tabLabelActive, { color: studentTab === 'timetable' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280') }]}>
                       Timetable
                     </Text>
                   </TouchableOpacity>
@@ -749,9 +812,9 @@ export default function App() {
                     <Ionicons
                       name={studentTab === 'history' ? 'time' : 'time-outline'}
                       size={20}
-                      color={studentTab === 'history' ? '#1E5EFF' : '#6B7280'}
+                      color={studentTab === 'history' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')}
                     />
-                    <Text style={[styles.tabLabel, studentTab === 'history' && styles.tabLabelActive]}>
+                    <Text style={[styles.tabLabel, studentTab === 'history' && styles.tabLabelActive, { color: studentTab === 'history' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280') }]}>
                       Logs
                     </Text>
                   </TouchableOpacity>
@@ -764,9 +827,9 @@ export default function App() {
                     <Ionicons
                       name={studentTab === 'profile' ? 'person' : 'person-outline'}
                       size={20}
-                      color={studentTab === 'profile' ? '#1E5EFF' : '#6B7280'}
+                      color={studentTab === 'profile' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')}
                     />
-                    <Text style={[styles.tabLabel, studentTab === 'profile' && styles.tabLabelActive]}>
+                    <Text style={[styles.tabLabel, studentTab === 'profile' && styles.tabLabelActive, { color: studentTab === 'profile' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280') }]}>
                       Identity
                     </Text>
                   </TouchableOpacity>
@@ -812,6 +875,7 @@ function StudentProfileScreen({
   const [isAccountOpen, setIsAccountOpen] = useState(true);
   const [isAppearanceOpen, setIsAppearanceOpen] = useState(false);
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
 
   // Form State Values
   const [email, setEmail] = useState(`${id}@university.edu.ph`);
@@ -849,6 +913,7 @@ function StudentProfileScreen({
       terms: 'Terms & Conditions',
       delete: 'Delete Account',
       logout: 'Log Out Account',
+      about: 'About Attenza',
     },
     Filipino: {
       title: 'Mga Setting at Profile',
@@ -872,6 +937,7 @@ function StudentProfileScreen({
       terms: 'Mga Tuntunin at Kundisyon',
       delete: 'I-delete ang Account',
       logout: 'Mag-log Out ng Account',
+      about: 'Tungkol sa Attenza',
     },
     Spanish: {
       title: 'Configuración y Perfil',
@@ -895,6 +961,7 @@ function StudentProfileScreen({
       terms: 'Términos y Condiciones',
       delete: 'Eliminar Cuenta',
       logout: 'Cerrar Sesión',
+      about: 'Acerca de Attenza',
     }
   };
   const t = translations[appLanguage] || translations.English;
@@ -1138,33 +1205,72 @@ function StudentProfileScreen({
         )}
       </View>
 
-      {/* ACCORDION 3: PRIVACY & SECURITY */}
+      {/* ACCORDION 3: ABOUT */}
       <View style={[styles.accordionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
         <TouchableOpacity 
           style={[styles.accordionHeader, { backgroundColor: theme.accordionHeaderBg }]} 
-          onPress={() => setIsPrivacyOpen(!isPrivacyOpen)}
+          onPress={() => setIsAboutOpen(!isAboutOpen)}
           activeOpacity={0.7}
         >
           <View style={styles.accordionHeaderLeft}>
-            <Ionicons name="shield-checkmark" size={24} color="#1E5EFF" style={{ marginRight: 10 }} />
-            <Text style={[styles.accordionTitle, { color: theme.text, fontSize: getFontSize(14) }]}>{t.privacy}</Text>
+            <Ionicons name="information-circle" size={24} color="#1E5EFF" style={{ marginRight: 10 }} />
+            <Text style={[styles.accordionTitle, { color: theme.text, fontSize: getFontSize(14) }]}>{t.about}</Text>
           </View>
           <Ionicons 
-            name={isPrivacyOpen ? 'chevron-up-outline' : 'chevron-down-outline'} 
+            name={isAboutOpen ? 'chevron-up-outline' : 'chevron-down-outline'} 
             size={18} 
             color={theme.subText} 
           />
         </TouchableOpacity>
 
-        {isPrivacyOpen && (
+        {isAboutOpen && (
           <View style={[styles.accordionBody, { borderTopColor: theme.cardBorder }]}>
+            {/* App version */}
+            <View style={[styles.settingToggleRow, { borderBottomColor: theme.cardBorder }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.settingMainText, { color: theme.text, fontSize: getFontSize(12.5) }]}>App Version</Text>
+                <Text style={[styles.settingSubText, { color: theme.subText, fontSize: getFontSize(9.5) }]}>Current release code package</Text>
+              </View>
+              <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: getFontSize(12.5) }}>Version 1.0.4</Text>
+            </View>
+
+            {/* Help Center */}
+            <TouchableOpacity 
+              style={[styles.legalLinkRow, { borderBottomColor: theme.cardBorder }]} 
+              onPress={() => Alert.alert('Help Center', 'Need assistance? Browse student help guides, selfie verification fixes, and geofencing coordinates instructions.')}
+            >
+              <Ionicons name="help-buoy-outline" size={18} color={theme.subText} style={{ marginRight: 8 }} />
+              <Text style={[styles.legalLinkText, { color: theme.text, fontSize: getFontSize(12.5) }]}>Help Center Portal</Text>
+              <Ionicons name="chevron-forward-outline" size={14} color={theme.subText} style={{ marginLeft: 'auto' }} />
+            </TouchableOpacity>
+
+            {/* Contact Support */}
+            <TouchableOpacity 
+              style={[styles.legalLinkRow, { borderBottomColor: theme.cardBorder }]} 
+              onPress={() => Alert.alert('Contact Support', 'Official IT administration support email: support.attenza@university.edu.ph')}
+            >
+              <Ionicons name="mail-outline" size={18} color={theme.subText} style={{ marginRight: 8 }} />
+              <Text style={[styles.legalLinkText, { color: theme.text, fontSize: getFontSize(12.5) }]}>Contact Support</Text>
+              <Ionicons name="chevron-forward-outline" size={14} color={theme.subText} style={{ marginLeft: 'auto' }} />
+            </TouchableOpacity>
+
+            {/* Report a Bug */}
+            <TouchableOpacity 
+              style={[styles.legalLinkRow, { borderBottomColor: theme.cardBorder }]} 
+              onPress={() => Alert.alert('Report a Bug', 'Found an issue with geofence proximity or scanning failures? Tap to log a telemetry report file.')}
+            >
+              <Ionicons name="bug-outline" size={18} color={theme.subText} style={{ marginRight: 8 }} />
+              <Text style={[styles.legalLinkText, { color: theme.text, fontSize: getFontSize(12.5) }]}>Report a Bug</Text>
+              <Ionicons name="chevron-forward-outline" size={14} color={theme.subText} style={{ marginLeft: 'auto' }} />
+            </TouchableOpacity>
+
             {/* Privacy Policy */}
             <TouchableOpacity 
               style={[styles.legalLinkRow, { borderBottomColor: theme.cardBorder }]} 
               onPress={() => Alert.alert('Privacy Policy', 'Your personal account info, camera selfies, and GPS coordinate checkpoints are only visible to course instructors and are deleted automatically at the end of the academic period.')}
             >
               <Ionicons name="document-text-outline" size={18} color={theme.subText} style={{ marginRight: 8 }} />
-              <Text style={[styles.legalLinkText, { color: theme.text, fontSize: getFontSize(12.5) }]}>{t.privacyPolicy}</Text>
+              <Text style={[styles.legalLinkText, { color: theme.text, fontSize: getFontSize(12.5) }]}>Privacy Policy</Text>
               <Ionicons name="chevron-forward-outline" size={14} color={theme.subText} style={{ marginLeft: 'auto' }} />
             </TouchableOpacity>
 
@@ -1174,13 +1280,13 @@ function StudentProfileScreen({
               onPress={() => Alert.alert('Terms & Conditions', 'By checking in on Attenza, you certify that you are physically present in the designated classroom and checking in on your own locked device. Proxy check-ins are strictly prohibited.')}
             >
               <Ionicons name="ribbon-outline" size={18} color={theme.subText} style={{ marginRight: 8 }} />
-              <Text style={[styles.legalLinkText, { color: theme.text, fontSize: getFontSize(12.5) }]}>{t.terms}</Text>
+              <Text style={[styles.legalLinkText, { color: theme.text, fontSize: getFontSize(12.5) }]}>Terms & Conditions</Text>
               <Ionicons name="chevron-forward-outline" size={14} color={theme.subText} style={{ marginLeft: 'auto' }} />
             </TouchableOpacity>
 
             {/* Delete Account */}
             <TouchableOpacity 
-              style={[styles.deleteAccountBtn, { borderColor: isDarkMode ? '#EF444450' : '#EF444420' }]} 
+              style={[styles.deleteAccountBtn, { borderColor: isDarkMode ? '#EF444450' : '#EF444420', marginTop: 14 }]} 
               onPress={handleDeleteAccount}
               activeOpacity={0.8}
             >
