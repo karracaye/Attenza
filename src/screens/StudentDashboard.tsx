@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ActiveSession } from '../data/mockData';
@@ -26,8 +27,23 @@ export default function StudentDashboard({
   const sectionCode = formatAcademicSection('CS 402', studentProfile.year, studentProfile.section);
   const cleanSection = sectionCode.replace('-', ''); // e.g. CS3B or CS4B
 
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1500);
+  };
+
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
       {/* Welcome Banner Header Card */}
       <View style={styles.welcomeCard}>
         <View style={styles.avatarCircle}>

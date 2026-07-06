@@ -9,6 +9,7 @@ import {
   Image,
   Modal,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { formatAcademicSection } from './HistoryScreen';
@@ -79,6 +80,15 @@ export default function ProfessorDashboardScreen({
   const [selectedExcuse, setSelectedExcuse] = useState<PendingExcuse | null>(null);
   const [isLightboxVisible, setIsLightboxVisible] = useState(false);
 
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1500);
+  };
+
   // Pagination states for excuses queue list (limit to 10 items)
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
@@ -111,7 +121,13 @@ export default function ProfessorDashboardScreen({
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
       {/* Welcome Banner Header */}
       <View style={styles.welcomeBanner}>
         <View style={styles.bannerGrid}>
