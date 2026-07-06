@@ -782,213 +782,280 @@ function StudentProfileScreen({ profile, onLogout }: ProfileProps) {
   const section = profile.section;
   const isIrregular = profile.isIrregular;
 
-  // Local state for editable settings
-  const [homeAddress, setHomeAddress] = useState(profile.homeAddress);
-  const [secondAddress, setSecondAddress] = useState(profile.secondAddress || '');
-  const [hasSecondAddress, setHasSecondAddress] = useState(profile.hasSecondAddress || false);
-  const [saving, setSaving] = useState(false);
+  // Accordion Toggle States
+  const [isAccountOpen, setIsAccountOpen] = useState(true);
+  const [isAppearanceOpen, setIsAppearanceOpen] = useState(false);
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
 
-  // App Toggles
+  // Form State Values
+  const [email, setEmail] = useState(`${id}@university.edu.ph`);
+  const [password, setPassword] = useState('••••••••••••');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  
+  // Appearance Values
   const [darkMode, setDarkMode] = useState(false);
-  const [notifications, setNotifications] = useState(true);
-  const [autoCheckin, setAutoCheckin] = useState(false);
-  const [biometrics, setBiometrics] = useState(true);
+  const [systemTheme, setSystemTheme] = useState(true);
+  const [language, setLanguage] = useState('English');
+  const [fontSize, setFontSize] = useState<'Small' | 'Medium' | 'Large'>('Medium');
 
-  // Device Info Mockup
+  // Hardcoded device identifier
   const [hardwareId, setHardwareId] = useState('F8C2-E40B-998A-3211-DE5F');
 
-  const handleSaveSettings = () => {
-    setSaving(true);
-    setTimeout(() => {
-      setSaving(false);
-      Alert.alert(
-        'Settings Saved',
-        'Your profile addresses and preferences have been updated successfully.'
-      );
-    }, 1000);
+  const handleChangePassword = () => {
+    if (isChangingPassword) {
+      if (newPassword.trim().length < 6) {
+        Alert.alert('Weak Password', 'Password must be at least 6 characters.');
+        return;
+      }
+      setPassword(newPassword.replace(/./g, '•'));
+      setIsChangingPassword(false);
+      setNewPassword('');
+      Alert.alert('Success', 'Password changed successfully!');
+    } else {
+      setIsChangingPassword(true);
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      '⚠️ Delete Account',
+      'Are you sure you want to request account deletion? This action requires administrative approval from the University registrar.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Request Deletion', style: 'destructive', onPress: () => Alert.alert('Request Sent', 'Your account deletion request has been submitted for review.') }
+      ]
+    );
   };
 
   return (
     <ScrollView style={styles.profileContainer} showsVerticalScrollIndicator={false}>
       <View style={styles.profileHeader}>
         <Text style={styles.profileHeaderTitle}>Settings & Profile</Text>
-        <Text style={styles.profileHeaderSub}>Configure your attendance parameters, update contact details, and manage system preferences.</Text>
+        <Text style={styles.profileHeaderSub}>Manage your student account, modify appearance options, and review privacy details.</Text>
       </View>
 
-      {/* SECTION 1: OFFICIAL STUDENT CREDENTIALS CARD (LOCKED) */}
-      <View style={styles.card}>
-        <View style={styles.idCardHeader}>
-          <View style={[styles.avatarCircleLarge, { backgroundColor: '#1E5EFF' }]}>
-            <Text style={styles.avatarTextLarge}>{name.slice(0, 1).toUpperCase() || '👤'}</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <View style={styles.idCardTitleRow}>
-              <Text style={styles.idCardName} numberOfLines={1}>{name || 'Student Name'}</Text>
-              {isIrregular && (
-                <View style={styles.idCardIrregBadge}>
-                  <Text style={styles.idCardIrregBadgeText}>IRREGULAR</Text>
-                </View>
-              )}
-            </View>
-            <Text style={styles.idCardNum}>ID: {id || '---'}</Text>
-            {/* Clean standardized format e.g. CS4B */}
-            <Text style={styles.idCardClass}>{formatAcademicSection('CS 402', year, section)}</Text>
-            <Text style={styles.idCardHome} numberOfLines={1}>📍 Primary: {homeAddress || 'No Address Set'}</Text>
-            {hasSecondAddress && (
-              <Text style={styles.idCardHome} numberOfLines={1}>🏠 Boarding: {secondAddress || 'No Address Set'}</Text>
-            )}
-          </View>
-        </View>
-        <View style={styles.idCardFooter}>
-          <Text style={styles.idCardBadge}>OFFICIAL STUDENT PROFILE</Text>
-        </View>
-      </View>
-
-      {/* SECTION 2: EDITABLE CONTACT ADDRESSES */}
-      <View style={styles.formCard}>
-        <Text style={styles.sectionTitleLabel}>📍 Address Coordinates</Text>
-        <Text style={styles.sectionSubLabel}>Update your primary or boarding address for GPS proximity validations.</Text>
-
-        <Text style={styles.formLabel}>Primary Home Address</Text>
-        <TextInput
-          style={styles.input}
-          value={homeAddress}
-          onChangeText={setHomeAddress}
-          placeholder="Enter primary address"
-          placeholderTextColor="#9CA3AF"
-        />
-
-        <View style={styles.switchRowContainer}>
-          <Text style={styles.switchRowLabel}>Staying in a Boarding House/Apartment?</Text>
-          <Switch
-            value={hasSecondAddress}
-            onValueChange={setHasSecondAddress}
-            trackColor={{ false: '#E5E7EB', true: '#1E5EFF' }}
-            thumbColor="#FFFFFF"
-            style={Platform.OS === 'web' ? { transform: [{ scale: 0.8 }] } as any : {}}
-          />
-        </View>
-
-        {hasSecondAddress && (
-          <>
-            <Text style={styles.formLabel}>Secondary / Boarding Address</Text>
-            <TextInput
-              style={styles.input}
-              value={secondAddress}
-              onChangeText={setSecondAddress}
-              placeholder="Enter boarding address"
-              placeholderTextColor="#9CA3AF"
-            />
-          </>
-        )}
-
-        <TouchableOpacity
-          style={[styles.saveBtn, saving && { opacity: 0.7 }]}
-          onPress={handleSaveSettings}
-          disabled={saving}
-          activeOpacity={0.8}
+      {/* ACCORDION 1: ACCOUNT */}
+      <View style={styles.accordionCard}>
+        <TouchableOpacity 
+          style={styles.accordionHeader} 
+          onPress={() => setIsAccountOpen(!isAccountOpen)}
+          activeOpacity={0.7}
         >
-          {saving ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Text style={styles.saveBtnText}>Save Address Settings</Text>
-          )}
+          <View style={styles.accordionHeaderLeft}>
+            <Ionicons name="person-circle" size={24} color="#1E5EFF" style={{ marginRight: 10 }} />
+            <Text style={styles.accordionTitle}>Account</Text>
+          </View>
+          <Ionicons 
+            name={isAccountOpen ? 'chevron-up-outline' : 'chevron-down-outline'} 
+            size={18} 
+            color="#6B7280" 
+          />
         </TouchableOpacity>
+
+        {isAccountOpen && (
+          <View style={styles.accordionBody}>
+            {/* Profile Information ID Card preview */}
+            <View style={styles.innerCard}>
+              <View style={styles.idCardHeader}>
+                <View style={[styles.avatarCircleLarge, { backgroundColor: '#1E5EFF', width: 44, height: 44, borderRadius: 22 }]}>
+                  <Text style={[styles.avatarTextLarge, { fontSize: 18 }]}>{name.slice(0, 1).toUpperCase() || '👤'}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.idCardName, { color: '#111827', fontSize: 15 }]}>{name}</Text>
+                  <Text style={[styles.idCardClass, { color: '#6B7280', marginTop: 1 }]}>
+                    {formatAcademicSection('CS 402', year, section)}  •  {isIrregular ? 'Irregular' : 'Regular'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Profile Information details (Disabled inputs) */}
+            <Text style={styles.formLabel}>Profile Information</Text>
+            <TextInput
+              style={[styles.input, styles.disabledInput]}
+              value={name}
+              editable={false}
+            />
+
+            {/* Student ID */}
+            <Text style={styles.formLabel}>Student ID</Text>
+            <TextInput
+              style={[styles.input, styles.disabledInput]}
+              value={id}
+              editable={false}
+            />
+
+            {/* University Email */}
+            <Text style={styles.formLabel}>University Email</Text>
+            <TextInput
+              style={[styles.input, styles.disabledInput]}
+              value={email}
+              editable={false}
+            />
+
+            {/* Change Password */}
+            <Text style={styles.formLabel}>Security Password</Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+              <TextInput
+                style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                value={isChangingPassword ? newPassword : password}
+                onChangeText={setNewPassword}
+                secureTextEntry={isChangingPassword}
+                placeholder={isChangingPassword ? 'Enter new password' : ''}
+                placeholderTextColor="#9CA3AF"
+                editable={isChangingPassword}
+              />
+              <TouchableOpacity style={styles.innerBtn} onPress={handleChangePassword}>
+                <Text style={styles.innerBtnText}>{isChangingPassword ? 'Confirm' : 'Change'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Linked Devices */}
+            <Text style={styles.formLabel}>Linked Devices</Text>
+            <View style={styles.deviceDetailGroup}>
+              <View style={styles.deviceDetailRow}>
+                <Text style={styles.deviceDetailLabel}>Active Device Signature:</Text>
+                <Text style={[styles.deviceDetailVal, { fontSize: 10.5 }]}>{hardwareId}</Text>
+              </View>
+              <View style={styles.deviceDetailRow}>
+                <Text style={styles.deviceDetailLabel}>Hardware Status:</Text>
+                <Text style={[styles.deviceDetailVal, { color: '#22C55E', fontWeight: '800' }]}>✓ Verified & Device Locked</Text>
+              </View>
+            </View>
+          </View>
+        )}
       </View>
 
-      {/* SECTION 3: APP PREFERENCES */}
-      <View style={styles.formCard}>
-        <Text style={styles.sectionTitleLabel}>⚙️ App Preferences</Text>
-        <Text style={styles.sectionSubLabel}>Personalize notifications, theme styling, and biometric security.</Text>
+      {/* ACCORDION 2: APPEARANCE */}
+      <View style={styles.accordionCard}>
+        <TouchableOpacity 
+          style={styles.accordionHeader} 
+          onPress={() => setIsAppearanceOpen(!isAppearanceOpen)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.accordionHeaderLeft}>
+            <Ionicons name="color-palette" size={24} color="#1E5EFF" style={{ marginRight: 10 }} />
+            <Text style={styles.accordionTitle}>Appearance</Text>
+          </View>
+          <Ionicons 
+            name={isAppearanceOpen ? 'chevron-up-outline' : 'chevron-down-outline'} 
+            size={18} 
+            color="#6B7280" 
+          />
+        </TouchableOpacity>
 
-        {/* Toggle 1: Dark Mode */}
-        <View style={styles.settingToggleRow}>
-          <View style={styles.settingToggleTextGroup}>
-            <Ionicons name="moon-outline" size={20} color="#111827" style={{ marginRight: 10 }} />
-            <View>
-              <Text style={styles.settingMainText}>Dark Mode Theme</Text>
-              <Text style={styles.settingSubText}>Switch app aesthetics to dark color palette</Text>
+        {isAppearanceOpen && (
+          <View style={styles.accordionBody}>
+            {/* Light/Dark Mode */}
+            <View style={styles.settingToggleRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingMainText}>Light / Dark Mode</Text>
+                <Text style={styles.settingSubText}>Switch app color mode layout</Text>
+              </View>
+              <Switch
+                value={darkMode}
+                onValueChange={setDarkMode}
+                trackColor={{ false: '#E5E7EB', true: '#1E5EFF' }}
+                thumbColor="#FFFFFF"
+                style={Platform.OS === 'web' ? { transform: [{ scale: 0.8 }] } as any : {}}
+              />
+            </View>
+
+            {/* System Theme */}
+            <View style={styles.settingToggleRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingMainText}>System Theme</Text>
+                <Text style={styles.settingSubText}>Sync mode to match mobile OS theme</Text>
+              </View>
+              <Switch
+                value={systemTheme}
+                onValueChange={setSystemTheme}
+                trackColor={{ false: '#E5E7EB', true: '#1E5EFF' }}
+                thumbColor="#FFFFFF"
+                style={Platform.OS === 'web' ? { transform: [{ scale: 0.8 }] } as any : {}}
+              />
+            </View>
+
+            {/* App Language */}
+            <View style={styles.settingToggleRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingMainText}>App Language</Text>
+                <Text style={styles.settingSubText}>Currently configured vocabulary</Text>
+              </View>
+              <View style={styles.badgeSelector}>
+                <Text style={styles.badgeSelectorText}>{language}</Text>
+              </View>
+            </View>
+
+            {/* Font Size Selector */}
+            <Text style={styles.formLabel}>Font Size</Text>
+            <View style={styles.fontSizeRow}>
+              {(['Small', 'Medium', 'Large'] as const).map((sz) => (
+                <TouchableOpacity
+                  key={sz}
+                  style={[styles.fontSizePill, fontSize === sz && styles.fontSizePillActive]}
+                  onPress={() => setFontSize(sz)}
+                >
+                  <Text style={[styles.fontSizeText, fontSize === sz && styles.fontSizeTextActive]}>{sz}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
-          <Switch
-            value={darkMode}
-            onValueChange={setDarkMode}
-            trackColor={{ false: '#E5E7EB', true: '#1E5EFF' }}
-            thumbColor="#FFFFFF"
-            style={Platform.OS === 'web' ? { transform: [{ scale: 0.8 }] } as any : {}}
-          />
-        </View>
-
-        {/* Toggle 2: Push Notifications */}
-        <View style={styles.settingToggleRow}>
-          <View style={styles.settingToggleTextGroup}>
-            <Ionicons name="notifications-outline" size={20} color="#111827" style={{ marginRight: 10 }} />
-            <View>
-              <Text style={styles.settingMainText}>Push Notifications</Text>
-              <Text style={styles.settingSubText}>Alert when check-in is open or time is expiring</Text>
-            </View>
-          </View>
-          <Switch
-            value={notifications}
-            onValueChange={setNotifications}
-            trackColor={{ false: '#E5E7EB', true: '#1E5EFF' }}
-            thumbColor="#FFFFFF"
-            style={Platform.OS === 'web' ? { transform: [{ scale: 0.8 }] } as any : {}}
-          />
-        </View>
-
-        {/* Toggle 3: Auto Beacon Check-In */}
-        <View style={styles.settingToggleRow}>
-          <View style={styles.settingToggleTextGroup}>
-            <Ionicons name="wifi-outline" size={20} color="#111827" style={{ marginRight: 10 }} />
-            <View>
-              <Text style={styles.settingMainText}>Auto Beacon Scan</Text>
-              <Text style={styles.settingSubText}>Scan classroom Bluetooth/WiFi signals in background</Text>
-            </View>
-          </View>
-          <Switch
-            value={autoCheckin}
-            onValueChange={setAutoCheckin}
-            trackColor={{ false: '#E5E7EB', true: '#1E5EFF' }}
-            thumbColor="#FFFFFF"
-            style={Platform.OS === 'web' ? { transform: [{ scale: 0.8 }] } as any : {}}
-          />
-        </View>
-
-        {/* Toggle 4: Biometrics FaceID */}
-        <View style={styles.settingToggleRow}>
-          <View style={styles.settingToggleTextGroup}>
-            <Ionicons name="finger-print-outline" size={20} color="#111827" style={{ marginRight: 10 }} />
-            <View>
-              <Text style={styles.settingMainText}>Biometric FaceID / TouchID</Text>
-              <Text style={styles.settingSubText}>Confirm check-ins using device biometric sensor</Text>
-            </View>
-          </View>
-          <Switch
-            value={biometrics}
-            onValueChange={setBiometrics}
-            trackColor={{ false: '#E5E7EB', true: '#1E5EFF' }}
-            thumbColor="#FFFFFF"
-            style={Platform.OS === 'web' ? { transform: [{ scale: 0.8 }] } as any : {}}
-          />
-        </View>
+        )}
       </View>
 
-      {/* SECTION 4: SECURITY REGISTERED DEVICE DETAILS */}
-      <View style={styles.formCard}>
-        <Text style={styles.sectionTitleLabel}>🛡️ Registered Device Credentials</Text>
-        <Text style={styles.sectionSubLabel}>Registered account is locked to this unique device signature for anti-cheating regulations.</Text>
+      {/* ACCORDION 3: PRIVACY & SECURITY */}
+      <View style={styles.accordionCard}>
+        <TouchableOpacity 
+          style={styles.accordionHeader} 
+          onPress={() => setIsPrivacyOpen(!isPrivacyOpen)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.accordionHeaderLeft}>
+            <Ionicons name="shield-checkmark" size={24} color="#1E5EFF" style={{ marginRight: 10 }} />
+            <Text style={styles.accordionTitle}>Privacy & Security</Text>
+          </View>
+          <Ionicons 
+            name={isPrivacyOpen ? 'chevron-up-outline' : 'chevron-down-outline'} 
+            size={18} 
+            color="#6B7280" 
+          />
+        </TouchableOpacity>
 
-        <View style={styles.deviceDetailGroup}>
-          <View style={styles.deviceDetailRow}>
-            <Text style={styles.deviceDetailLabel}>Hardware signature:</Text>
-            <Text style={styles.deviceDetailVal}>{hardwareId}</Text>
+        {isPrivacyOpen && (
+          <View style={styles.accordionBody}>
+            {/* Privacy Policy */}
+            <TouchableOpacity 
+              style={styles.legalLinkRow} 
+              onPress={() => Alert.alert('Privacy Policy', 'Your personal account info, camera selfies, and GPS coordinate checkpoints are only visible to course instructors and are deleted automatically at the end of the academic period.')}
+            >
+              <Ionicons name="document-text-outline" size={18} color="#6B7280" style={{ marginRight: 8 }} />
+              <Text style={styles.legalLinkText}>Privacy Policy</Text>
+              <Ionicons name="chevron-forward-outline" size={14} color="#D1D5DB" style={{ marginLeft: 'auto' }} />
+            </TouchableOpacity>
+
+            {/* Terms & Conditions */}
+            <TouchableOpacity 
+              style={styles.legalLinkRow} 
+              onPress={() => Alert.alert('Terms & Conditions', 'By checking in on Attenza, you certify that you are physically present in the designated classroom and checking in on your own locked device. Proxy check-ins are strictly prohibited.')}
+            >
+              <Ionicons name="ribbon-outline" size={18} color="#6B7280" style={{ marginRight: 8 }} />
+              <Text style={styles.legalLinkText}>Terms & Conditions</Text>
+              <Ionicons name="chevron-forward-outline" size={14} color="#D1D5DB" style={{ marginLeft: 'auto' }} />
+            </TouchableOpacity>
+
+            {/* Delete Account */}
+            <TouchableOpacity 
+              style={styles.deleteAccountBtn} 
+              onPress={handleDeleteAccount}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="trash-outline" size={18} color="#EF4444" style={{ marginRight: 6 }} />
+              <Text style={styles.deleteAccountBtnText}>Delete Account</Text>
+            </TouchableOpacity>
           </View>
-          <View style={styles.deviceDetailRow}>
-            <Text style={styles.deviceDetailLabel}>Security Status:</Text>
-            <Text style={[styles.deviceDetailVal, { color: '#22C55E', fontWeight: '800' }]}>✓ Account Verified & Locked</Text>
-          </View>
-        </View>
+        )}
       </View>
 
       {/* LOG OUT BUTTON */}
@@ -1421,5 +1488,121 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     fontSize: 13,
     fontWeight: '800',
+  },
+  accordionCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  accordionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#FAFBFC',
+  },
+  accordionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  accordionTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  accordionBody: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  innerCard: {
+    backgroundColor: '#FAFBFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    padding: 12,
+    marginBottom: 16,
+  },
+  innerBtn: {
+    backgroundColor: '#1E5EFF',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  innerBtnText: {
+    color: '#ffffff',
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  badgeSelector: {
+    backgroundColor: '#E5E7EB30',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  badgeSelectorText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1E5EFF',
+  },
+  fontSizeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  fontSizePill: {
+    flex: 1,
+    backgroundColor: '#FAFBFC',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  fontSizePillActive: {
+    backgroundColor: '#1E5EFF',
+    borderColor: '#1E5EFF',
+  },
+  fontSizeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#6B7280',
+  },
+  fontSizeTextActive: {
+    color: '#ffffff',
+  },
+  legalLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#E5E7EB',
+  },
+  legalLinkText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  deleteAccountBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EF44440d',
+    borderColor: '#EF444420',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 12,
+    marginTop: 18,
+  },
+  deleteAccountBtnText: {
+    color: '#EF4444',
+    fontWeight: '800',
+    fontSize: 13,
   },
 });
