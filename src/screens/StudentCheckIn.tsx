@@ -14,6 +14,8 @@ import {
 } from 'react-native';
 import { ActiveSession, Classroom, StudentCheckInRecord, Subject, getRollingTokenForTime } from '../data/mockData';
 import { getDeviceHardwareId } from '../data/storage';
+import * as ImagePicker from 'expo-image-picker';
+import { Ionicons } from '@expo/vector-icons';
 
 interface Props {
   activeSession: ActiveSession | null;
@@ -151,16 +153,70 @@ export default function StudentCheckIn({
     }
   };
 
-  // Step 2: Selfie Simulator (Camera Only)
-  const handleCaptureSelfie = () => {
+  // Step 2: Real Selfie Verification (Launch Camera)
+  const handleCaptureSelfie = async () => {
     setCapturing(true);
-    setTimeout(() => {
+    try {
+      const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
+      if (!cameraStatus.granted) {
+        Alert.alert('Permission Denied', 'Camera permissions are required to capture your live verification selfie.');
+        setCapturing(false);
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        cameraType: ImagePicker.CameraType.front,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const selfieUri = result.assets[0].uri;
+        setSelfiePath(selfieUri);
+        setSelfieVerified(true);
+        Alert.alert('Selfie Verified', 'Face verification completed successfully.');
+        setStep(3);
+      }
+    } catch (error) {
+      console.error('Error capturing selfie:', error);
+      Alert.alert('Capture Failed', 'An error occurred while launching the camera.');
+    } finally {
       setCapturing(false);
-      setSelfieVerified(true);
-      setSelfiePath('📸 Student Live Snapshot');
-      Alert.alert('Selfie Captured', 'Layer 2 check complete. Face verification matching OK.');
-      setStep(3);
-    }, 1500);
+    }
+  };
+
+  // Step 2: Select Selfie from Gallery
+  const handleSelectSelfieFromGallery = async () => {
+    setCapturing(true);
+    try {
+      const libraryStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!libraryStatus.granted) {
+        Alert.alert('Permission Denied', 'Photo library permissions are required to select a verification photo.');
+        setCapturing(false);
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const selfieUri = result.assets[0].uri;
+        setSelfiePath(selfieUri);
+        setSelfieVerified(true);
+        Alert.alert('Selfie Verified', 'Photo verification completed successfully.');
+        setStep(3);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Upload Failed', 'An error occurred while accessing the photo gallery.');
+    } finally {
+      setCapturing(false);
+    }
   };
 
   // Distance helper
@@ -677,17 +733,22 @@ export default function StudentCheckIn({
                     <ActivityIndicator size="large" color="#1E5EFF" />
                   ) : selfiePath ? (
                     <View style={styles.selfiePreview}>
-                      <Text style={styles.selfieIconLarge}>✅👤</Text>
-                      <Text style={styles.selfieCaptureConfirm}>Ready for submission</Text>
+                      <Image source={{ uri: selfiePath }} style={styles.capturedSelfieImage} />
+                      <Text style={styles.selfieCaptureConfirm}>Selfie Ready for Submission</Text>
                     </View>
                   ) : (
                     <View style={styles.ovalFrame}>
+                      <Ionicons name="camera-outline" size={32} color="#8F9BB3" style={{ marginBottom: 4 }} />
                       <Text style={styles.ovalFrameLabel}>Align Face Here</Text>
                     </View>
                   )}
                 </View>
 
-                <TouchableOpacity style={styles.verifyBtn} onPress={handleCaptureSelfie} disabled={capturing}>
+                <TouchableOpacity
+                  style={styles.verifyBtn}
+                  onPress={handleCaptureSelfie}
+                  disabled={capturing}
+                >
                   <Text style={styles.verifyBtnText}>
                     {selfiePath ? 'Retake Live Selfie' : 'Capture Live Selfie'}
                   </Text>
@@ -1212,15 +1273,55 @@ const styles = StyleSheet.create({
   },
   selfiePreview: {
     alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
   },
-  selfieIconLarge: {
-    fontSize: 40,
+  capturedSelfieImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 2.5,
+    borderColor: '#22C55E',
   },
   selfieCaptureConfirm: {
     color: '#22C55E',
     fontSize: 12,
     fontWeight: '700',
     marginTop: 8,
+  },
+  selfieActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 10,
+  },
+  selfieBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderWidth: 1.5,
+  },
+  selfieBtnPrimary: {
+    backgroundColor: '#1E5EFF',
+    borderColor: '#1E5EFF',
+  },
+  selfieBtnSecondary: {
+    backgroundColor: 'transparent',
+    borderColor: '#1E5EFF',
+  },
+  selfieBtnTextPrimary: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  selfieBtnTextSecondary: {
+    color: '#1E5EFF',
+    fontWeight: '800',
+    fontSize: 13,
   },
   // File Selector simulation styles
   fileSelectorSub: {

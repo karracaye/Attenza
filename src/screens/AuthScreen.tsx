@@ -22,6 +22,7 @@ import {
   saveStudentProfile,
   saveProfessorSubjects,
 } from '../data/storage';
+import { formatAcademicSection } from './HistoryScreen';
 
 interface Props {
   onLoginSuccess: (user: UserAccount, role: 'professor' | 'student') => void;
@@ -710,7 +711,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.subWorkloadCode}>{sub.code}</Text>
                   <Text style={styles.subWorkloadName}>{sub.name}</Text>
-                  <Text style={styles.subWorkloadMeta}>{sub.department}  •  {sub.course}  •  {sub.year} ({sub.section})</Text>
+                  <Text style={styles.subWorkloadMeta}>{sub.department}  •  {formatAcademicSection(sub.code, sub.year, sub.section)}</Text>
                   <Text style={styles.subWorkloadMeta}>🕒 {sub.scheduleTime}</Text>
                 </View>
                 <TouchableOpacity style={styles.subWorkloadRemoveBtn} onPress={() => handleRemoveSubjectFromProfList(sub.id)}>

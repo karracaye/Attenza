@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { formatAcademicSection } from './HistoryScreen';
 
 interface PendingExcuse {
   id: string;
@@ -225,7 +226,7 @@ export default function ProfessorDashboardScreen({
               <View>
                 <Text style={styles.excuseStudentName}>{exc.studentName}</Text>
                 <Text style={styles.excuseStudentDetails}>
-                  ID: {exc.studentId} • {exc.year} ({exc.section})
+                  ID: {exc.studentId} • {formatAcademicSection(exc.subjectCode, exc.year, exc.section)}
                 </Text>
               </View>
               <View style={styles.excuseSubjectBadge}>

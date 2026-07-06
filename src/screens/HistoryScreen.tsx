@@ -52,7 +52,7 @@ export const formatAcademicSection = (subjectCode: string, yearStr: string, sect
     if (cleaned.length === 1) secLetter = cleaned.toUpperCase();
   }
 
-  return `${prefix}-${yearNum}${secLetter}`;
+  return `${prefix}${yearNum}${secLetter}`;
 };
 
 export default function HistoryScreen({ logs, role, studentId }: Props) {

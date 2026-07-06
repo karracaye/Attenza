@@ -13,6 +13,7 @@ import {
   TextInput,
 } from 'react-native';
 import { Subject, Classroom, StudentCheckInRecord, ActiveSession, getRollingTokenForTime } from '../data/mockData';
+import { formatAcademicSection } from './HistoryScreen';
 
 interface Props {
   subjects: Subject[];
@@ -303,7 +304,7 @@ export default function ProfessorDashboard({
                           )}
                         </View>
                         <Text style={styles.studentIdText}>
-                          ID: {record.studentId} • {record.year} ({record.section}) • {record.timestamp}
+                          ID: {record.studentId} • {formatAcademicSection(activeSession?.subjectCode || 'CS', record.year, record.section)} • {record.timestamp}
                         </Text>
                       </View>
                     </View>
