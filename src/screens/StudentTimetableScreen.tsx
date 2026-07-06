@@ -85,8 +85,19 @@ const TIME_OPTIONS = [
   '07:00 PM'
 ];
 
-export default function StudentTimetableScreen() {
+interface Props {
+  isDarkMode?: boolean;
+}
+
+export default function StudentTimetableScreen({ isDarkMode = false }: Props) {
   const [entries, setEntries] = useState<TimetableEntry[]>([]);
+  const colors = {
+    bg: isDarkMode ? '#111827' : '#FAFBFC',
+    text: isDarkMode ? '#F9FAFB' : '#111827',
+    subText: isDarkMode ? '#9CA3AF' : '#6B7280',
+    cardBg: isDarkMode ? '#1F2937' : '#ffffff',
+    border: isDarkMode ? '#374151' : '#E5E7EB',
+  };
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isExportModalVisible, setIsExportModalVisible] = useState(false);
 
@@ -403,11 +414,11 @@ export default function StudentTimetableScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>🗓️ Semester Timetable</Text>
-          <Text style={styles.headerSubtitle}>Manage your classes and visual weekly workload schedule.</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>🗓️ Semester Timetable</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.subText }]}>Manage your classes and visual weekly workload schedule.</Text>
         </View>
 
         <TouchableOpacity style={styles.exportBtn} onPress={() => setIsExportModalVisible(true)} activeOpacity={0.8}>
@@ -420,15 +431,15 @@ export default function StudentTimetableScreen() {
       </TouchableOpacity>
 
       <ScrollView horizontal={true} showsHorizontalScrollIndicator={true} style={styles.gridScroll}>
-        <View style={styles.gridContainer}>
+        <View style={[styles.gridContainer, { backgroundColor: colors.cardBg }]}>
           {/* Header Row: Time and Weekdays */}
-          <View style={styles.gridRowHeader}>
+          <View style={[styles.gridRowHeader, { borderBottomColor: colors.border }]}>
             <View style={styles.timeHeaderCell}>
-              <Text style={styles.gridHeaderLabel}>Time Block</Text>
+              <Text style={[styles.gridHeaderLabel, { color: colors.subText }]}>Time Block</Text>
             </View>
             {WEEKDAYS.map((day) => (
               <View key={day} style={styles.dayHeaderCell}>
-                <Text style={styles.gridHeaderLabel}>{day.slice(0, 3)}</Text>
+                <Text style={[styles.gridHeaderLabel, { color: colors.subText }]}>{day.slice(0, 3)}</Text>
               </View>
             ))}
           </View>
@@ -436,9 +447,9 @@ export default function StudentTimetableScreen() {
           {/* Time Slot Rows */}
           {TIME_SLOTS.map((slot) => {
             return (
-              <View key={slot.label} style={styles.gridRow}>
-                <View style={styles.timeCell}>
-                  <Text style={styles.timeSlotLabel}>{slot.label}</Text>
+              <View key={slot.label} style={[styles.gridRow, { borderBottomColor: colors.border }]}>
+                <View style={[styles.timeCell, { borderRightColor: colors.border }]}>
+                  <Text style={[styles.timeSlotLabel, { color: colors.subText }]}>{slot.label}</Text>
                 </View>
 
                 {WEEKDAYS.map((day) => {
@@ -447,20 +458,20 @@ export default function StudentTimetableScreen() {
                     return (
                       <TouchableOpacity
                         key={day}
-                        style={styles.classCell}
+                        style={[styles.classCell, { backgroundColor: isDarkMode ? '#1e3a8a30' : '#EAF2FF', borderColor: isDarkMode ? '#1e3a8a90' : '#EAF2FF', borderRightColor: colors.border }]}
                         onPress={() => handleOpenEdit(entry)}
                         activeOpacity={0.9}
                       >
-                        <Text style={styles.classCode}>{entry.subjectCode}</Text>
-                        <Text style={styles.classProf} numberOfLines={1}>{entry.professorName}</Text>
-                        <Text style={styles.classRoom} numberOfLines={1}>📍 {entry.roomName}</Text>
+                        <Text style={[styles.classCode, { color: isDarkMode ? '#93c5fd' : '#1e3a8a' }]}>{entry.subjectCode}</Text>
+                        <Text style={[styles.classProf, { color: isDarkMode ? '#cbd5e1' : '#475569' }]} numberOfLines={1}>{entry.professorName}</Text>
+                        <Text style={[styles.classRoom, { color: isDarkMode ? '#94a3b8' : '#64748b' }]} numberOfLines={1}>📍 {entry.roomName}</Text>
                       </TouchableOpacity>
                     );
                   }
 
                   return (
-                    <View key={day} style={styles.vacantCell}>
-                      <Text style={styles.vacantText}>—</Text>
+                    <View key={day} style={[styles.vacantCell, { borderRightColor: colors.border, backgroundColor: isDarkMode ? '#11182740' : '#FAFBFC' }]}>
+                      <Text style={[styles.vacantText, { color: colors.subText }]}>—</Text>
                     </View>
                   );
                 })}

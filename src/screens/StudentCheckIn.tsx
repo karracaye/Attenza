@@ -13,7 +13,9 @@ import {
   Switch,
 } from 'react-native';
 import { ActiveSession, Classroom, StudentCheckInRecord, Subject, getRollingTokenForTime } from '../data/mockData';
-import { getDeviceHardwareId } from '../data/storage';
+import { getDeviceHardwareId } from '../services/api';
+import * as ImagePicker from 'expo-image-picker';
+import { Ionicons } from '@expo/vector-icons';
 
 interface Props {
   activeSession: ActiveSession | null;
@@ -22,6 +24,7 @@ interface Props {
   classroomCoords: Classroom[];
   onSubmitGeneralExcuse?: (subjectCode: string, reason: string, attachment: string, attachmentUri?: string) => void;
   subjects?: Subject[];
+  isDarkMode?: boolean;
 }
 
 const SIMULATED_LOCATIONS = [
@@ -44,7 +47,15 @@ export default function StudentCheckIn({
   classroomCoords,
   onSubmitGeneralExcuse,
   subjects = [],
+  isDarkMode = false,
 }: Props) {
+  const colors = {
+    bg: isDarkMode ? '#111827' : '#FAFBFC',
+    text: isDarkMode ? '#F9FAFB' : '#111827',
+    subText: isDarkMode ? '#9CA3AF' : '#6B7280',
+    cardBg: isDarkMode ? '#1F2937' : '#ffffff',
+    border: isDarkMode ? '#374151' : '#E5E7EB',
+  };
   // Mode switcher: 'select' (choose to checkin or excuse), 'checkin' (standard checks), 'excuse' (letter filing)
   const [subMode, setSubMode] = useState<'select' | 'checkin' | 'excuse'>('select');
 
@@ -151,16 +162,70 @@ export default function StudentCheckIn({
     }
   };
 
-  // Step 2: Selfie Simulator (Camera Only)
-  const handleCaptureSelfie = () => {
+  // Step 2: Real Selfie Verification (Launch Camera)
+  const handleCaptureSelfie = async () => {
     setCapturing(true);
-    setTimeout(() => {
+    try {
+      const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
+      if (!cameraStatus.granted) {
+        Alert.alert('Permission Denied', 'Camera permissions are required to capture your live verification selfie.');
+        setCapturing(false);
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        cameraType: ImagePicker.CameraType.front,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const selfieUri = result.assets[0].uri;
+        setSelfiePath(selfieUri);
+        setSelfieVerified(true);
+        Alert.alert('Selfie Verified', 'Face verification completed successfully.');
+        setStep(3);
+      }
+    } catch (error) {
+      console.error('Error capturing selfie:', error);
+      Alert.alert('Capture Failed', 'An error occurred while launching the camera.');
+    } finally {
       setCapturing(false);
-      setSelfieVerified(true);
-      setSelfiePath('📸 Student Live Snapshot');
-      Alert.alert('Selfie Captured', 'Layer 2 check complete. Face verification matching OK.');
-      setStep(3);
-    }, 1500);
+    }
+  };
+
+  // Step 2: Select Selfie from Gallery
+  const handleSelectSelfieFromGallery = async () => {
+    setCapturing(true);
+    try {
+      const libraryStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!libraryStatus.granted) {
+        Alert.alert('Permission Denied', 'Photo library permissions are required to select a verification photo.');
+        setCapturing(false);
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const selfieUri = result.assets[0].uri;
+        setSelfiePath(selfieUri);
+        setSelfieVerified(true);
+        Alert.alert('Selfie Verified', 'Photo verification completed successfully.');
+        setStep(3);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Upload Failed', 'An error occurred while accessing the photo gallery.');
+    } finally {
+      setCapturing(false);
+    }
   };
 
   // Distance helper
@@ -351,20 +416,20 @@ export default function StudentCheckIn({
   if (!activeSession) {
     if (generalExcuseSuccess) {
       return (
-        <View style={styles.container}>
-          <View style={styles.successCard}>
+        <View style={[styles.container, { backgroundColor: colors.bg }]}>
+          <View style={[styles.successCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
             <Text style={styles.successIcon}>✉️</Text>
-            <Text style={styles.successTitle}>Excuse Letter Sent</Text>
-            <Text style={styles.successSub}>
+            <Text style={[styles.successTitle, { color: colors.text }]}>Excuse Letter Sent</Text>
+            <Text style={[styles.successSub, { color: colors.subText }]}>
               Your waiver has been filed successfully. It will automatically match this class session date in the professor's database.
             </Text>
 
-            <View style={styles.summaryBox}>
-              <Text style={styles.summaryItem}>👤 Student: <Text style={styles.summaryVal}>{studentProfile.studentName}</Text></Text>
-              <Text style={styles.summaryItem}>📚 Subject: <Text style={styles.summaryVal}>{selectedGeneralSubjectCode}</Text></Text>
-              <Text style={styles.summaryItem}>📅 Date Filed: <Text style={styles.summaryVal}>Today (Waiver Active)</Text></Text>
-              <Text style={styles.summaryItem}>📝 Reason: <Text style={styles.summaryVal}>{excuseReason}</Text></Text>
-              <Text style={styles.summaryItem}>📎 Attachment: <Text style={[styles.summaryVal, { color: '#1E5EFF', fontWeight: 'bold' }]}>{selectedFile}</Text></Text>
+            <View style={[styles.summaryBox, { backgroundColor: isDarkMode ? '#11182740' : '#FAFBFC', borderColor: colors.border }]}>
+              <Text style={[styles.summaryItem, { color: colors.text }]}>👤 Student: <Text style={[styles.summaryVal, { color: colors.text }]}>{studentProfile.studentName}</Text></Text>
+              <Text style={[styles.summaryItem, { color: colors.text }]}>📚 Subject: <Text style={[styles.summaryVal, { color: colors.text }]}>{selectedGeneralSubjectCode}</Text></Text>
+              <Text style={[styles.summaryItem, { color: colors.text }]}>📅 Date Filed: <Text style={[styles.summaryVal, { color: colors.text }]}>Today (Waiver Active)</Text></Text>
+              <Text style={[styles.summaryItem, { color: colors.text }]}>📝 Reason: <Text style={[styles.summaryVal, { color: colors.text }]}>{excuseReason}</Text></Text>
+              <Text style={[styles.summaryItem, { color: colors.text }]}>📎 Attachment: <Text style={[styles.summaryVal, { color: '#1E5EFF', fontWeight: 'bold' }]}>{selectedFile}</Text></Text>
             </View>
 
             <TouchableOpacity style={styles.doneBtn} onPress={() => { setGeneralExcuseSuccess(false); setExcuseReason(''); setSelectedFile(''); setExcuseAttachmentUri(''); setShowWaiverForm(false); }}>
@@ -377,15 +442,15 @@ export default function StudentCheckIn({
 
     if (!showWaiverForm) {
       return (
-        <View style={styles.container}>
-          <View style={styles.noSessionCard}>
+        <View style={[styles.container, { backgroundColor: colors.bg }]}>
+          <View style={[styles.noSessionCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
             <Text style={styles.noSessionIcon}>📡</Text>
-            <Text style={styles.noSessionTitle}>Terminal Standby</Text>
-            <Text style={styles.noSessionSub}>No active class attendance session detected. Please keep this screen open; it will update automatically when your professor starts roll call.</Text>
+            <Text style={[styles.noSessionTitle, { color: colors.text }]}>Terminal Standby</Text>
+            <Text style={[styles.noSessionSub, { color: colors.subText }]}>No active class attendance session detected. Please keep this screen open; it will update automatically when your professor starts roll call.</Text>
 
             {/* Muted secondary excuse waiver trigger */}
             <View style={styles.excuseFallbackContainer}>
-              <Text style={styles.excuseFallbackText}>Absent today?</Text>
+              <Text style={[styles.excuseFallbackText, { color: colors.subText }]}>Absent today?</Text>
               <TouchableOpacity onPress={() => setShowWaiverForm(true)} activeOpacity={0.7}>
                 <Text style={styles.excuseFallbackLink}>File absence excuse waiver</Text>
               </TouchableOpacity>
@@ -398,16 +463,16 @@ export default function StudentCheckIn({
     const currentSub = subjects.find(s => s.code === selectedGeneralSubjectCode) || subjects[0];
 
     return (
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView style={[styles.container, { backgroundColor: colors.bg }]} showsVerticalScrollIndicator={false}>
         {/* Back Link to waiting screen */}
         <TouchableOpacity style={styles.backLinkRow} onPress={() => setShowWaiverForm(false)} activeOpacity={0.7}>
           <Text style={styles.backLinkRowText}>← Back to Terminal Standby</Text>
         </TouchableOpacity>
 
         {/* General Excuse Letter Submission Card */}
-        <View style={[styles.wizardCard, { marginTop: 12, marginBottom: 40 }]}>
-          <Text style={styles.wizardCardTitle}>✉️ File Absence Excuse Waiver</Text>
-          <Text style={styles.wizardCardSub}>Select your subject course and submit your excuse letter details below.</Text>
+        <View style={[styles.wizardCard, { marginTop: 12, marginBottom: 40, backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+          <Text style={[styles.wizardCardTitle, { color: colors.text }]}>✉️ File Absence Excuse Waiver</Text>
+          <Text style={[styles.wizardCardSub, { color: colors.subText }]}>Select your subject course and submit your excuse letter details below.</Text>
 
           {/* Select Subject Dropdown */}
           <Text style={styles.manualLabel}>Select Subject:</Text>
@@ -523,34 +588,34 @@ export default function StudentCheckIn({
   if (step === 4) {
     const isExcuse = subMode === 'excuse';
     return (
-      <View style={styles.container}>
-        <View style={styles.successCard}>
+      <View style={[styles.container, { backgroundColor: colors.bg }]}>
+        <View style={[styles.successCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
           <Text style={styles.successIcon}>{isExcuse ? '✉️' : '🎉'}</Text>
-          <Text style={styles.successTitle}>
+          <Text style={[styles.successTitle, { color: colors.text }]}>
             {isExcuse ? 'Excuse Submitted' : 'Attendance Verified'}
           </Text>
-          <Text style={styles.successSub}>
+          <Text style={[styles.successSub, { color: colors.subText }]}>
             {isExcuse 
               ? 'Your excuse letter request has been sent to the professor for review.'
               : 'Your check-in has been validated. The professor\'s roster has been updated successfully.'}
           </Text>
 
-          <View style={styles.summaryBox}>
-            <Text style={styles.summaryItem}>👤 Student: <Text style={styles.summaryVal}>{studentProfile.studentName}</Text></Text>
-            <Text style={styles.summaryItem}>🏫 Room: <Text style={styles.summaryVal}>{activeSession.isOnline ? 'Remote / Online' : activeSession.classroomName}</Text></Text>
-            <Text style={styles.summaryItem}>🕒 Timestamp: <Text style={styles.summaryVal}>Just now</Text></Text>
-            <Text style={styles.summaryItem}>⏰ Arrival Status: <Text style={[styles.summaryVal, { fontWeight: 'bold', color: isExcuse ? '#1E5EFF' : (checkInStatus === 'LATE' ? '#F59E0B' : '#22C55E') }]}>
+          <View style={[styles.summaryBox, { backgroundColor: isDarkMode ? '#11182740' : '#FAFBFC', borderColor: colors.border }]}>
+            <Text style={[styles.summaryItem, { color: colors.text }]}>👤 Student: <Text style={[styles.summaryVal, { color: colors.text }]}>{studentProfile.studentName}</Text></Text>
+            <Text style={[styles.summaryItem, { color: colors.text }]}>🏫 Room: <Text style={[styles.summaryVal, { color: colors.text }]}>{activeSession.isOnline ? 'Remote / Online' : activeSession.classroomName}</Text></Text>
+            <Text style={[styles.summaryItem, { color: colors.text }]}>🕒 Timestamp: <Text style={[styles.summaryVal, { color: colors.text }]}>Just now</Text></Text>
+            <Text style={[styles.summaryItem, { color: colors.text }]}>⏰ Arrival Status: <Text style={[styles.summaryVal, { fontWeight: 'bold', color: isExcuse ? '#1E5EFF' : (checkInStatus === 'LATE' ? '#F59E0B' : '#22C55E') }]}>
               {isExcuse ? 'EXCUSED' : (checkInStatus === 'LATE' ? 'LATE' : 'ON TIME')}
             </Text></Text>
             {isExcuse ? (
               <>
-                <Text style={styles.summaryItem}>📝 Reason: <Text style={styles.summaryVal}>{excuseReason}</Text></Text>
-                <Text style={styles.summaryItem}>📎 Attached File: <Text style={[styles.summaryVal, { color: '#1E5EFF', fontWeight: 'bold' }]}>{selectedFile}</Text></Text>
+                <Text style={[styles.summaryItem, { color: colors.text }]}>📝 Reason: <Text style={[styles.summaryVal, { color: colors.text }]}>{excuseReason}</Text></Text>
+                <Text style={[styles.summaryItem, { color: colors.text }]}>📎 Attached File: <Text style={[styles.summaryVal, { color: '#1E5EFF', fontWeight: 'bold' }]}>{selectedFile}</Text></Text>
               </>
             ) : (
               <>
-                <Text style={styles.summaryItem}>📍 GPS Coordinates: <Text style={styles.summaryVal}>{studentLoc.lat}, {studentLoc.lng}</Text></Text>
-                <Text style={styles.summaryItem}>🛡️ Security check: <Text style={styles.summaryVal}>{activeSession.isOnline ? 'Passed (Online Session)' : 'Passed (3/3 Layers)'}</Text></Text>
+                <Text style={[styles.summaryItem, { color: colors.text }]}>📍 GPS Coordinates: <Text style={[styles.summaryVal, { color: colors.text }]}>{studentLoc.lat}, {studentLoc.lng}</Text></Text>
+                <Text style={[styles.summaryItem, { color: colors.text }]}>🛡️ Security check: <Text style={[styles.summaryVal, { color: colors.text }]}>{activeSession.isOnline ? 'Passed (Online Session)' : 'Passed (3/3 Layers)'}</Text></Text>
               </>
             )}
           </View>
@@ -564,37 +629,37 @@ export default function StudentCheckIn({
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <View style={styles.sessionHeader}>
         <View style={styles.sessionTitleRow}>
-          <Text style={styles.sessionClass}>{activeSession.subjectName}</Text>
+          <Text style={[styles.sessionClass, { color: colors.text }]}>{activeSession.subjectName}</Text>
           <View style={[styles.deliveryPill, activeSession.isOnline ? styles.pillOrange : styles.pillBlue]}>
             <Text style={[styles.deliveryPillText, activeSession.isOnline ? styles.textOrange : styles.textBlue]}>
               {activeSession.isOnline ? '🌐 ONLINE' : '🏫 F2F'}
             </Text>
           </View>
         </View>
-        <Text style={styles.sessionRoom}>
+        <Text style={[styles.sessionRoom, { color: colors.subText }]}>
           {activeSession.isOnline ? '🌐 Classroom: Remote Virtual Session' : `🏫 Classroom: ${activeSession.classroomName}`}
         </Text>
       </View>
 
       {/* SELECT MODE VIEW */}
       {subMode === 'select' && (
-        <View style={styles.selectCard}>
-          <Text style={styles.selectTitle}>Class Attendance Session Active</Text>
-          <Text style={styles.selectSubtitle}>Please complete the security checkpoints to register your presence for this session.</Text>
+        <View style={[styles.selectCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+          <Text style={[styles.selectTitle, { color: colors.text }]}>Class Attendance Session Active</Text>
+          <Text style={[styles.selectSubtitle, { color: colors.subText }]}>Please complete the security checkpoints to register your presence for this session.</Text>
 
           {/* Primary Action Button: Verify Presence */}
-          <TouchableOpacity style={styles.primaryCheckinBtn} onPress={() => setSubMode('checkin')} activeOpacity={0.9}>
+          <TouchableOpacity style={[styles.primaryCheckinBtn, { backgroundColor: isDarkMode ? '#1e3a8a30' : '#EAF2FF', borderColor: colors.border }]} onPress={() => setSubMode('checkin')} activeOpacity={0.9}>
             <Text style={styles.primaryCheckinEmoji}>🏫🛡️</Text>
-            <Text style={styles.primaryCheckinText}>Verify In-Class Presence</Text>
-            <Text style={styles.primaryCheckinSub}>Start the 3-layer GPS, OTP QR & selfie checkpoints</Text>
+            <Text style={[styles.primaryCheckinText, { color: colors.text }]}>Verify In-Class Presence</Text>
+            <Text style={[styles.primaryCheckinSub, { color: colors.subText }]}>Start the 3-layer GPS, OTP QR & selfie checkpoints</Text>
           </TouchableOpacity>
 
           {/* Minimalist, subtle excuse link at the bottom (not highlighted) */}
           <View style={styles.excuseFallbackContainer}>
-            <Text style={styles.excuseFallbackText}>Absent today?</Text>
+            <Text style={[styles.excuseFallbackText, { color: colors.subText }]}>Absent today?</Text>
             <TouchableOpacity onPress={() => setSubMode('excuse')} activeOpacity={0.7}>
               <Text style={styles.excuseFallbackLink}>Submit Excuse Letter</Text>
             </TouchableOpacity>
@@ -605,26 +670,26 @@ export default function StudentCheckIn({
       {/* CHECKIN WIZARD VIEWS */}
       {subMode === 'checkin' && (
         <>
-          <View style={styles.checklistCard}>
+          <View style={[styles.checklistCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
             <View style={styles.checkTitleRow}>
-              <Text style={styles.checklistTitle}>Verification Steps</Text>
+              <Text style={[styles.checklistTitle, { color: colors.text }]}>Verification Steps</Text>
               <TouchableOpacity onPress={() => setSubMode('select')}>
                 <Text style={styles.backSelectLink}>Back to Options</Text>
               </TouchableOpacity>
             </View>
             
             <View style={styles.stepGrid}>
-              <View style={[styles.stepItem, qrVerified && styles.stepItemDone, step === 1 && styles.stepItemActive]}>
+              <View style={[styles.stepItem, qrVerified && styles.stepItemDone, step === 1 && styles.stepItemActive, isDarkMode && { backgroundColor: '#11182740' }]}>
                 <Text style={[styles.stepNum, qrVerified && styles.stepNumDone]}>{qrVerified ? '✓' : '1'}</Text>
-                <Text style={styles.stepLabel}>QR Code</Text>
+                <Text style={[styles.stepLabel, { color: colors.text }]}>QR Code</Text>
               </View>
-              <View style={[styles.stepItem, selfieVerified && styles.stepItemDone, step === 2 && styles.stepItemActive]}>
+              <View style={[styles.stepItem, selfieVerified && styles.stepItemDone, step === 2 && styles.stepItemActive, isDarkMode && { backgroundColor: '#11182740' }]}>
                 <Text style={[styles.stepNum, selfieVerified && styles.stepNumDone]}>{selfieVerified ? '✓' : '2'}</Text>
-                <Text style={styles.stepLabel}>Selfie</Text>
+                <Text style={[styles.stepLabel, { color: colors.text }]}>Selfie</Text>
               </View>
-              <View style={[styles.stepItem, gpsVerified && styles.stepItemDone, step === 3 && styles.stepItemActive]}>
+              <View style={[styles.stepItem, gpsVerified && styles.stepItemDone, step === 3 && styles.stepItemActive, isDarkMode && { backgroundColor: '#11182740' }]}>
                 <Text style={[styles.stepNum, gpsVerified && styles.stepNumDone]}>{gpsVerified ? '✓' : '3'}</Text>
-                <Text style={styles.stepLabel}>Location</Text>
+                <Text style={[styles.stepLabel, { color: colors.text }]}>Location</Text>
               </View>
             </View>
           </View>
@@ -632,21 +697,21 @@ export default function StudentCheckIn({
           <ScrollView style={styles.wizardContent} showsVerticalScrollIndicator={false}>
             {/* STEP 1: QR CODE INPUT */}
             {step === 1 && (
-              <View style={styles.wizardCard}>
-                <Text style={styles.wizardCardTitle}>Step 1: Scan Classroom QR</Text>
-                <Text style={styles.wizardCardSub}>Input the rolling security token displayed on the professor's projector screen.</Text>
+              <View style={[styles.wizardCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+                <Text style={[styles.wizardCardTitle, { color: colors.text }]}>Step 1: Scan Classroom QR</Text>
+                <Text style={[styles.wizardCardSub, { color: colors.subText }]}>Input the rolling security token displayed on the professor's projector screen.</Text>
 
-                <View style={styles.viewfinderMock}>
-                  <Text style={styles.viewfinderMockText}>📷 Camera Viewfinder Active</Text>
-                  <Text style={styles.viewfinderMockSub}>Position the QR code inside the center frame</Text>
-                  <View style={styles.viewfinderTarget} />
+                <View style={[styles.viewfinderMock, isDarkMode && { backgroundColor: '#11182760', borderColor: '#374151' }]}>
+                  <Text style={[styles.viewfinderMockText, { color: colors.text }]}>📷 Camera Viewfinder Active</Text>
+                  <Text style={[styles.viewfinderMockSub, { color: colors.subText }]}>Position the QR code inside the center frame</Text>
+                  <View style={[styles.viewfinderTarget, isDarkMode && { borderColor: '#1E5EFF80' }]} />
                 </View>
 
-                <Text style={styles.manualLabel}>Or input the rolling token value manually:</Text>
+                <Text style={[styles.manualLabel, { color: colors.text }]}>Or input the rolling token value manually:</Text>
                 <TextInput
-                  style={styles.tokenInput}
+                  style={[styles.tokenInput, { backgroundColor: isDarkMode ? '#111827' : '#ffffff', color: colors.text, borderColor: colors.border }]}
                   placeholder="e.g. CS302_LOGS_83A"
-                  placeholderTextColor="#6B7280"
+                  placeholderTextColor={colors.subText}
                   autoCapitalize="characters"
                   value={qrInput}
                   onChangeText={setQrInput}
@@ -668,26 +733,31 @@ export default function StudentCheckIn({
 
             {/* STEP 2: FRONT SELFIE CAPTURE */}
             {step === 2 && (
-              <View style={styles.wizardCard}>
-                <Text style={styles.wizardCardTitle}>Step 2: Live Front Selfie</Text>
-                <Text style={styles.wizardCardSub}>Security rules block gallery uploads. Take a live front selfie to confirm your identity.</Text>
+              <View style={[styles.wizardCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+                <Text style={[styles.wizardCardTitle, { color: colors.text }]}>Step 2: Live Front Selfie</Text>
+                <Text style={[styles.wizardCardSub, { color: colors.subText }]}>Security rules block gallery uploads. Take a live front selfie to confirm your identity.</Text>
 
-                <View style={styles.selfieViewfinder}>
+                <View style={[styles.selfieViewfinder, isDarkMode && { backgroundColor: '#11182760', borderColor: '#374151' }]}>
                   {capturing ? (
                     <ActivityIndicator size="large" color="#1E5EFF" />
                   ) : selfiePath ? (
                     <View style={styles.selfiePreview}>
-                      <Text style={styles.selfieIconLarge}>✅👤</Text>
-                      <Text style={styles.selfieCaptureConfirm}>Ready for submission</Text>
+                       <Image source={{ uri: selfiePath }} style={styles.capturedSelfieImage} />
+                      <Text style={[styles.selfieCaptureConfirm, { color: colors.text }]}>Selfie Ready for Submission</Text>
                     </View>
                   ) : (
-                    <View style={styles.ovalFrame}>
-                      <Text style={styles.ovalFrameLabel}>Align Face Here</Text>
+                    <View style={[styles.ovalFrame, isDarkMode && { borderColor: '#374151', backgroundColor: '#11182740' }]}>
+                      <Ionicons name="camera-outline" size={32} color={colors.subText} style={{ marginBottom: 4 }} />
+                      <Text style={[styles.ovalFrameLabel, { color: colors.subText }]}>Align Face Here</Text>
                     </View>
                   )}
                 </View>
 
-                <TouchableOpacity style={styles.verifyBtn} onPress={handleCaptureSelfie} disabled={capturing}>
+                <TouchableOpacity
+                  style={styles.verifyBtn}
+                  onPress={handleCaptureSelfie}
+                  disabled={capturing}
+                >
                   <Text style={styles.verifyBtnText}>
                     {selfiePath ? 'Retake Live Selfie' : 'Capture Live Selfie'}
                   </Text>
@@ -697,9 +767,9 @@ export default function StudentCheckIn({
 
             {/* STEP 3: GPS LOCATION PROXIMITY */}
             {step === 3 && (
-              <View style={styles.wizardCard}>
-                <Text style={styles.wizardCardTitle}>Step 3: Location Verification</Text>
-                <Text style={styles.wizardCardSub}>
+              <View style={[styles.wizardCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+                <Text style={[styles.wizardCardTitle, { color: colors.text }]}>Step 3: Location Verification</Text>
+                <Text style={[styles.wizardCardSub, { color: colors.subText }]}>
                   {activeSession.isOnline 
                     ? 'Online Session: GPS location coordinates are recorded. Proximity checks are bypassed.'
                     : 'Face-to-Face Session: Enforces distance proximity bounds (< 20 meters from classroom).'}
@@ -707,9 +777,9 @@ export default function StudentCheckIn({
 
                 {/* Virtual Session Location Reporting */}
                 {activeSession.isOnline && (
-                  <View style={styles.remoteReportContainer}>
-                    <Text style={styles.remoteReportTitle}>🏠 Standpoint Location Report</Text>
-                    <Text style={styles.remoteReportSub}>If you are attending class from a location other than your home address (e.g. WiFi center, grandmother's house), please toggle below to report it.</Text>
+                  <View style={[styles.remoteReportContainer, { backgroundColor: isDarkMode ? '#11182740' : '#FAFBFC', borderColor: colors.border }]}>
+                    <Text style={[styles.remoteReportTitle, { color: colors.text }]}>🏠 Standpoint Location Report</Text>
+                    <Text style={[styles.remoteReportSub, { color: colors.subText }]}>If you are attending class from a location other than your home address (e.g. WiFi center, grandmother's house), please toggle below to report it.</Text>
                     
                     <TouchableOpacity
                       style={[styles.remoteTogglePill, isRemoteStandpoint && styles.remoteTogglePillActive]}
@@ -723,20 +793,20 @@ export default function StudentCheckIn({
 
                     {isRemoteStandpoint && (
                       <View style={styles.remoteInputsBox}>
-                        <Text style={styles.remoteInputLabel}>Current Location Name / Place:</Text>
+                        <Text style={[styles.remoteInputLabel, { color: colors.text }]}>Current Location Name / Place:</Text>
                         <TextInput
-                          style={styles.remoteTextInput}
+                          style={[styles.remoteTextInput, { backgroundColor: isDarkMode ? '#111827' : '#ffffff', color: colors.text, borderColor: colors.border }]}
                           placeholder="e.g. Grandmother's House, WIFI Facility, Cafe"
-                          placeholderTextColor="#a0a0a5"
+                          placeholderTextColor={colors.subText}
                           value={remoteLocationName}
                           onChangeText={setRemoteLocationName}
                         />
 
-                        <Text style={styles.remoteInputLabel}>Reason for staying at this location:</Text>
+                        <Text style={[styles.remoteInputLabel, { color: colors.text }]}>Reason for staying at this location:</Text>
                         <TextInput
-                          style={[styles.remoteTextInput, { height: 60, textAlignVertical: 'top' }]}
+                          style={[styles.remoteTextInput, { height: 60, textAlignVertical: 'top', backgroundColor: isDarkMode ? '#111827' : '#ffffff', color: colors.text, borderColor: colors.border }]}
                           placeholder="e.g. Power outage at home, Better internet connectivity, Visiting family"
-                          placeholderTextColor="#a0a0a5"
+                          placeholderTextColor={colors.subText}
                           multiline={true}
                           value={remoteLocationReason}
                           onChangeText={setRemoteLocationReason}
@@ -747,37 +817,37 @@ export default function StudentCheckIn({
                 )}
 
                 {/* Simulated Locations Selectors */}
-                <Text style={styles.simulatorTitle}>Test Location Simulator</Text>
+                <Text style={[styles.simulatorTitle, { color: colors.text }]}>Test Location Simulator</Text>
                 <View style={styles.locationOptionList}>
                   {SIMULATED_LOCATIONS.map((loc) => (
                     <TouchableOpacity
                       key={loc.id}
-                      style={[styles.locOptionBtn, selectedLocId === loc.id && styles.locOptionBtnActive]}
+                      style={[styles.locOptionBtn, { backgroundColor: isDarkMode ? '#11182740' : '#FAFBFC', borderColor: colors.border }, selectedLocId === loc.id && styles.locOptionBtnActive]}
                       onPress={() => {
                         setSelectedLocId(loc.id);
                         setGpsVerified(false);
                       }}
                     >
-                      <Text style={[styles.locOptionText, selectedLocId === loc.id && styles.locOptionTextActive]}>
+                      <Text style={[styles.locOptionText, { color: colors.text }, selectedLocId === loc.id && styles.locOptionTextActive]}>
                         {loc.label}
                       </Text>
-                      <Text style={[styles.locOptionSubText, selectedLocId === loc.id && styles.locOptionTextActiveSub]}>
+                      <Text style={[styles.locOptionSubText, { color: colors.subText }, selectedLocId === loc.id && styles.locOptionTextActiveSub]}>
                         GPS: {loc.lat}, {loc.lng}
                       </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
 
-                <View style={styles.locationDisplayBox}>
-                  <Text style={styles.locDisplayHeader}>Captured Coordinates:</Text>
+                <View style={[styles.locationDisplayBox, { backgroundColor: isDarkMode ? '#11182740' : '#FAFBFC', borderColor: colors.border }]}>
+                  <Text style={[styles.locDisplayHeader, { color: colors.text }]}>Captured Coordinates:</Text>
                   {checkingGps ? (
                     <ActivityIndicator size="small" color="#1E5EFF" />
                   ) : (
                     <>
-                      <Text style={styles.coordinatesText}>
+                      <Text style={[styles.coordinatesText, { color: colors.subText }]}>
                         Lat: {studentLoc.lat}
                       </Text>
-                      <Text style={styles.coordinatesText}>
+                      <Text style={[styles.coordinatesText, { color: colors.subText }]}>
                         Lng: {studentLoc.lng}
                       </Text>
                     </>
@@ -1212,15 +1282,55 @@ const styles = StyleSheet.create({
   },
   selfiePreview: {
     alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
   },
-  selfieIconLarge: {
-    fontSize: 40,
+  capturedSelfieImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 2.5,
+    borderColor: '#22C55E',
   },
   selfieCaptureConfirm: {
     color: '#22C55E',
     fontSize: 12,
     fontWeight: '700',
     marginTop: 8,
+  },
+  selfieActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 10,
+  },
+  selfieBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderWidth: 1.5,
+  },
+  selfieBtnPrimary: {
+    backgroundColor: '#1E5EFF',
+    borderColor: '#1E5EFF',
+  },
+  selfieBtnSecondary: {
+    backgroundColor: 'transparent',
+    borderColor: '#1E5EFF',
+  },
+  selfieBtnTextPrimary: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  selfieBtnTextSecondary: {
+    color: '#1E5EFF',
+    fontWeight: '800',
+    fontSize: 13,
   },
   // File Selector simulation styles
   fileSelectorSub: {

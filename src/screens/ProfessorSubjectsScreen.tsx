@@ -11,12 +11,13 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
-import { ProfessorSubject } from '../data/storage';
+import { ProfessorSubject } from '../services/api';
 import { formatAcademicSection } from './HistoryScreen';
 
 interface Props {
   subjects: ProfessorSubject[];
   onSaveSubjects: (updatedList: ProfessorSubject[]) => void;
+  isDarkMode?: boolean;
 }
 
 const MONTHS = [
@@ -67,7 +68,14 @@ const generateTimeOptions = () => {
 
 const TIME_OPTIONS = generateTimeOptions();
 
-export default function ProfessorSubjectsScreen({ subjects, onSaveSubjects }: Props) {
+export default function ProfessorSubjectsScreen({ subjects, onSaveSubjects, isDarkMode = false }: Props) {
+  const colors = {
+    bg: isDarkMode ? '#111827' : '#FAFBFC',
+    text: isDarkMode ? '#F9FAFB' : '#111827',
+    subText: isDarkMode ? '#9CA3AF' : '#6B7280',
+    cardBg: isDarkMode ? '#1F2937' : '#ffffff',
+    border: isDarkMode ? '#374151' : '#E5E7EB',
+  };
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [currentDate, setCurrentDate] = useState(new Date(2026, 6, 1)); // Default July 2026
   const [selectedDate, setSelectedDate] = useState<Date>(new Date(2026, 6, 1));
@@ -310,31 +318,31 @@ export default function ProfessorSubjectsScreen({ subjects, onSaveSubjects }: Pr
   const selectedDateClasses = getSubjectsForDate(selectedDate);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>🎓 Course Workload Manager</Text>
-        <Text style={styles.headerSubtitle}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>🎓 Course Workload Manager</Text>
+        <Text style={[styles.headerSubtitle, { color: colors.subText }]}>
           Configure your teaching subjects, sections, and track schedule timelines.
         </Text>
       </View>
 
       {/* View Switcher Segmented Control */}
-      <View style={styles.toggleContainer}>
+      <View style={[styles.toggleContainer, { backgroundColor: isDarkMode ? '#111827' : '#f0f2f5', borderColor: colors.border }]}>
         <TouchableOpacity
-          style={[styles.toggleBtn, viewMode === 'list' && styles.toggleBtnActive]}
+          style={[styles.toggleBtn, viewMode === 'list' && styles.toggleBtnActive, viewMode !== 'list' && isDarkMode && { backgroundColor: 'transparent' }]}
           onPress={() => setViewMode('list')}
           activeOpacity={0.8}
         >
-          <Text style={[styles.toggleBtnText, viewMode === 'list' && styles.toggleBtnTextActive]}>
+          <Text style={[styles.toggleBtnText, { color: colors.text }, viewMode === 'list' && styles.toggleBtnTextActive]}>
             Workload List
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.toggleBtn, viewMode === 'calendar' && styles.toggleBtnActive]}
+          style={[styles.toggleBtn, viewMode === 'calendar' && styles.toggleBtnActive, viewMode !== 'calendar' && isDarkMode && { backgroundColor: 'transparent' }]}
           onPress={() => setViewMode('calendar')}
           activeOpacity={0.8}
         >
-          <Text style={[styles.toggleBtnText, viewMode === 'calendar' && styles.toggleBtnTextActive]}>
+          <Text style={[styles.toggleBtnText, { color: colors.text }, viewMode === 'calendar' && styles.toggleBtnTextActive]}>
             Calendar Monitor
           </Text>
         </TouchableOpacity>
@@ -355,7 +363,7 @@ export default function ProfessorSubjectsScreen({ subjects, onSaveSubjects }: Pr
               const isShifted = item.scheduleTime !== item.originalScheduleTime;
 
               return (
-                <View style={styles.card}>
+                <View style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
                   <View style={styles.cardInfo}>
                     <View style={styles.codeRow}>
                       <Text style={styles.subjectCode}>{item.code}</Text>
@@ -365,31 +373,31 @@ export default function ProfessorSubjectsScreen({ subjects, onSaveSubjects }: Pr
                         </View>
                       )}
                     </View>
-                    <Text style={styles.subjectName}>{item.name}</Text>
+                    <Text style={[styles.subjectName, { color: colors.text }]}>{item.name}</Text>
                     
-                    <Text style={styles.metaLabel}>
-                      Department: <Text style={styles.metaValue}>{item.department || 'N/A'}</Text>
+                    <Text style={[styles.metaLabel, { color: colors.subText }]}>
+                      Department: <Text style={[styles.metaValue, { color: colors.text }]}>{item.department || 'N/A'}</Text>
                     </Text>
 
-                    <Text style={styles.metaLabel}>
-                      Course: <Text style={styles.metaValue}>{item.course || 'N/A'}</Text>
+                    <Text style={[styles.metaLabel, { color: colors.subText }]}>
+                      Course: <Text style={[styles.metaValue, { color: colors.text }]}>{item.course || 'N/A'}</Text>
                     </Text>
 
-                    <Text style={styles.metaLabel}>
-                      Target Class: <Text style={styles.metaValue}>{formatAcademicSection(item.code, item.year, item.section)}</Text>
+                    <Text style={[styles.metaLabel, { color: colors.subText }]}>
+                      Target Class: <Text style={[styles.metaValue, { color: colors.text }]}>{formatAcademicSection(item.code, item.year, item.section)}</Text>
                     </Text>
 
-                    <Text style={styles.metaLabel}>
-                      Schedule: <Text style={[styles.metaValue, isShifted && styles.shiftedTimeText]}>{item.scheduleTime}</Text>
+                    <Text style={[styles.metaLabel, { color: colors.subText }]}>
+                      Schedule: <Text style={[styles.metaValue, { color: colors.text }, isShifted && styles.shiftedTimeText]}>{item.scheduleTime}</Text>
                     </Text>
                     {isShifted && (
-                      <Text style={styles.originalScheduleLabel}>
+                      <Text style={[styles.originalScheduleLabel, { color: colors.subText }]}>
                         Original schedule: {item.originalScheduleTime}
                       </Text>
                     )}
                   </View>
 
-                  <View style={styles.actionRow}>
+                  <View style={[styles.actionRow, { borderTopColor: colors.border }]}>
                     <TouchableOpacity onPress={() => openEditModal(item)} activeOpacity={0.7}>
                       <Text style={styles.actionLinkText}>✏️ Reschedule / Edit</Text>
                     </TouchableOpacity>
@@ -409,32 +417,32 @@ export default function ProfessorSubjectsScreen({ subjects, onSaveSubjects }: Pr
       ) : (
         /* FULL MONTHLY & YEARLY GRID CALENDAR MONITOR */
         <ScrollView style={styles.calendarScroll} showsVerticalScrollIndicator={false}>
-          <View style={styles.calendarBox}>
+          <View style={[styles.calendarBox, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
             {/* Header controls for Month & Year */}
             <View style={styles.calendarControlHeader}>
               <TouchableOpacity style={styles.arrowBtn} onPress={prevMonth}>
-                <Text style={styles.arrowText}>◀</Text>
+                <Text style={[styles.arrowText, { color: colors.text }]}>◀</Text>
               </TouchableOpacity>
 
               <View style={styles.pickerSelectorRow}>
-                <TouchableOpacity style={styles.pickerPill} onPress={() => setIsMonthPickerVisible(true)}>
-                  <Text style={styles.pickerPillText}>{MONTHS[selectedMonth]} ▾</Text>
+                <TouchableOpacity style={[styles.pickerPill, { backgroundColor: isDarkMode ? '#111827' : '#ffffff', borderColor: colors.border }]} onPress={() => setIsMonthPickerVisible(true)}>
+                  <Text style={[styles.pickerPillText, { color: colors.text }]}>{MONTHS[selectedMonth]} ▾</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.pickerPill} onPress={() => setIsYearPickerVisible(true)}>
-                  <Text style={styles.pickerPillText}>{selectedYear} ▾</Text>
+                <TouchableOpacity style={[styles.pickerPill, { backgroundColor: isDarkMode ? '#111827' : '#ffffff', borderColor: colors.border }]} onPress={() => setIsYearPickerVisible(true)}>
+                  <Text style={[styles.pickerPillText, { color: colors.text }]}>{selectedYear} ▾</Text>
                 </TouchableOpacity>
               </View>
 
               <TouchableOpacity style={styles.arrowBtn} onPress={nextMonth}>
-                <Text style={styles.arrowText}>▶</Text>
+                <Text style={[styles.arrowText, { color: colors.text }]}>▶</Text>
               </TouchableOpacity>
             </View>
 
             {/* Grid Week Days Header */}
             <View style={styles.calendarWeekHeader}>
               {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((label, idx) => (
-                <Text key={idx} style={styles.weekLabel}>{label}</Text>
+                <Text key={idx} style={[styles.weekLabel, { color: colors.subText }]}>{label}</Text>
               ))}
             </View>
 
@@ -451,11 +459,11 @@ export default function ProfessorSubjectsScreen({ subjects, onSaveSubjects }: Pr
                 return (
                   <TouchableOpacity
                     key={cell.id}
-                    style={[styles.gridCellDay, isSelected && styles.gridCellDaySelected]}
+                    style={[styles.gridCellDay, { backgroundColor: isDarkMode ? '#11182740' : '#FAFBFC', borderColor: colors.border }, isSelected && styles.gridCellDaySelected]}
                     onPress={() => setSelectedDate(cell.date!)}
                     activeOpacity={0.8}
                   >
-                    <Text style={[styles.dayNumberText, isSelected && styles.dayNumberTextSelected]}>
+                    <Text style={[styles.dayNumberText, { color: colors.text }, isSelected && styles.dayNumberTextSelected]}>
                       {cell.dayNum}
                     </Text>
                     {hasClass && (
@@ -468,21 +476,21 @@ export default function ProfessorSubjectsScreen({ subjects, onSaveSubjects }: Pr
           </View>
 
           {/* Timeline Schedule Drawer */}
-          <View style={styles.timelineCard}>
-            <Text style={styles.timelineHeader}>
+          <View style={[styles.timelineCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+            <Text style={[styles.timelineHeader, { color: colors.text }]}>
               📅 Agenda: {selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
             </Text>
 
             {selectedDateClasses.length === 0 ? (
               <View style={styles.emptyCalendarBlock}>
-                <Text style={styles.emptyCalendarText}>No scheduled classes today</Text>
-                <Text style={styles.emptyCalendarSub}>Tap another calendar grid date to view that day's scheduled subjects.</Text>
+                <Text style={[styles.emptyCalendarText, { color: colors.text }]}>No scheduled classes today</Text>
+                <Text style={[styles.emptyCalendarSub, { color: colors.subText }]}>Tap another calendar grid date to view that day's scheduled subjects.</Text>
               </View>
             ) : (
               selectedDateClasses.map((item) => {
                 const isShifted = item.scheduleTime !== item.originalScheduleTime;
                 return (
-                  <View key={item.id} style={styles.timelineItem}>
+                  <View key={item.id} style={[styles.timelineItem, { borderBottomColor: colors.border }]}>
                     <View style={styles.timelineMarkerContainer}>
                       <View style={[styles.timelineNode, isShifted && styles.timelineNodeShifted]} />
                       <View style={styles.timelineLine} />
@@ -497,13 +505,13 @@ export default function ProfessorSubjectsScreen({ subjects, onSaveSubjects }: Pr
                           </View>
                         )}
                       </View>
-                      <Text style={styles.timelineCode}>{item.code}</Text>
-                      <Text style={styles.timelineName}>{item.name}</Text>
-                      <Text style={styles.timelineClassGroup}>
+                      <Text style={[styles.timelineCode, { color: colors.text }]}>{item.code}</Text>
+                      <Text style={[styles.timelineName, { color: colors.text }]}>{item.name}</Text>
+                      <Text style={[styles.timelineClassGroup, { color: colors.subText }]}>
                         🏫 {formatAcademicSection(item.code, item.year, item.section)}
                       </Text>
                       {isShifted && (
-                        <Text style={styles.timelineOriginalLabel}>
+                        <Text style={[styles.timelineOriginalLabel, { color: colors.subText }]}>
                           Originally: {item.originalScheduleTime}
                         </Text>
                       )}

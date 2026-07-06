@@ -41,7 +41,12 @@ import {
   UserAccount,
   getClassrooms,
   saveClassrooms,
-} from './src/data/storage';
+  startProfessorSession,
+  endProfessorSession,
+  getLiveSessionRecords,
+  submitStudentCheckIn,
+  submitStudentExcuse,
+} from './src/services/api';
 
 import {
   Subject,
@@ -58,14 +63,15 @@ import ProfessorLauncher from './src/screens/ProfessorDashboard';
 import ProfessorDashboardScreen from './src/screens/ProfessorDashboardScreen';
 import StudentCheckIn from './src/screens/StudentCheckIn';
 import StudentDashboard from './src/screens/StudentDashboard';
-import HistoryScreen from './src/screens/HistoryScreen';
+import HistoryScreen, { formatAcademicSection } from './src/screens/HistoryScreen';
 import ProfessorSubjectsScreen from './src/screens/ProfessorSubjectsScreen';
 import AuthScreen from './src/screens/AuthScreen';
 import StudentTimetableScreen from './src/screens/StudentTimetableScreen';
+import ProfessorProfileScreen from './src/screens/ProfessorProfileScreen';
 
 type RoleType = 'professor' | 'student';
 type StudentTab = 'dashboard' | 'checkin' | 'timetable' | 'history' | 'profile';
-type ProfessorTab = 'dashboard' | 'launcher' | 'subjects' | 'history';
+type ProfessorTab = 'dashboard' | 'launcher' | 'subjects' | 'history' | 'profile';
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -84,6 +90,11 @@ export default function App() {
   const [studentTab, setStudentTab] = useState<StudentTab>('dashboard');
   const [professorTab, setProfessorTab] = useState<ProfessorTab>('dashboard');
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
+
+  // Appearance States (Accessible across screens)
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [appLanguage, setAppLanguage] = useState<'English' | 'Filipino' | 'Spanish'>('English');
+  const [appFontSize, setAppFontSize] = useState<'Small' | 'Medium' | 'Large'>('Medium');
 
   // Entities state
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
@@ -128,11 +139,6 @@ export default function App() {
     async function loadData() {
       const startTime = Date.now();
       await initializeData();
-      const session = await getActiveSession();
-      const logs = await getHistoryLogs();
-      const profile = await getStudentProfile();
-      const subjects = await getProfessorSubjects();
-      const rooms = await getClassrooms();
       
       const user = await getCurrentUser();
       if (user) {
@@ -140,6 +146,12 @@ export default function App() {
         setRole(user.role);
         setIsAuthenticated(true);
       }
+
+      const session = await getActiveSession();
+      const logs = await getHistoryLogs(user?.role, user?.usernameId);
+      const profile = await getStudentProfile(user?.usernameId);
+      const subjects = await getProfessorSubjects(user?.usernameId);
+      const rooms = await getClassrooms();
 
       setActiveSession(session);
       setHistoryLogs(logs);
@@ -165,11 +177,34 @@ export default function App() {
     loadData();
   }, []);
 
-  // Sync active session live check-ins simulation
+  // Sync active session live check-ins database polling
   useEffect(() => {
     if (!activeSession) {
       setLiveRecords([]);
+      return;
     }
+
+    const fetchLiveRecords = async () => {
+      try {
+        const records = await getLiveSessionRecords(activeSession.id);
+        if (records) {
+          const normalized = records.map(r => ({
+            ...r,
+            qrVerified: !!r.qr_verified,
+            selfieVerified: !!r.selfie_verified,
+            gpsVerified: !!r.gps_verified,
+            verified: true,
+          }));
+          setLiveRecords(normalized);
+        }
+      } catch (err) {
+        console.warn('Polling live records error:', err);
+      }
+    };
+    
+    fetchLiveRecords();
+    const interval = setInterval(fetchLiveRecords, 2000);
+    return () => clearInterval(interval);
   }, [activeSession]);
 
   // Handler: Auth success callback
@@ -178,11 +213,11 @@ export default function App() {
     setRole(selectedRole);
     setIsAuthenticated(true);
 
-    // Reload context details from AsyncStorage
+    // Reload context details from Server
     const session = await getActiveSession();
-    const logs = await getHistoryLogs();
-    const profile = await getStudentProfile();
-    const subjects = await getProfessorSubjects();
+    const logs = await getHistoryLogs(selectedRole, user.usernameId);
+    const profile = await getStudentProfile(user.usernameId);
+    const subjects = await getProfessorSubjects(user.usernameId);
 
     setActiveSession(session);
     setHistoryLogs(logs);
@@ -237,7 +272,7 @@ export default function App() {
     };
 
     setActiveSession(newSession);
-    await saveActiveSession(newSession);
+    await startProfessorSession(newSession);
   };
 
   // Handler: Register custom classroom standpoint
@@ -248,7 +283,7 @@ export default function App() {
   };
 
   // Handler: Student submits check-in
-  const handleStudentCheckInSubmit = (record: StudentCheckInRecord) => {
+  const handleStudentCheckInSubmit = async (record: StudentCheckInRecord) => {
     // Append to live session roster
     const exists = liveRecords.some(r => r.studentId === record.studentId);
     if (exists) {
@@ -271,6 +306,7 @@ export default function App() {
     }
 
     setLiveRecords([...liveRecords, record]);
+    await submitStudentCheckIn(record);
   };
 
   // Handler: Student submits excuse waiver without scanning QR code
@@ -339,7 +375,7 @@ export default function App() {
       isIrregular: studentProfile.isIrregular,
     };
 
-    await savePendingExcuses([...pending, newExcuse]);
+    await submitStudentExcuse(newExcuse);
     Alert.alert('Waiver Registered', 'Your excuse letter is queued for today\'s session. It will sync automatically when your professor completes roll call.');
   };
 
@@ -415,16 +451,14 @@ export default function App() {
 
     const updatedLogs = [newLog, ...historyLogs];
     setHistoryLogs(updatedLogs);
-    await saveHistoryLogs(updatedLogs);
-
+    await endProfessorSession(activeSession, combinedRecords);
     setActiveSession(null);
-    await clearActiveSession();
   };
 
   // Handler: Save dynamic professor semester subjects
   const handleSaveProfessorSubjects = async (updatedList: ProfessorSubject[]) => {
     setProfessorSubjects(updatedList);
-    await saveProfessorSubjects(updatedList);
+    await saveProfessorSubjects(updatedList, currentUser?.usernameId);
   };
 
   // Switch role and update view
@@ -432,12 +466,18 @@ export default function App() {
     setRole(role === 'student' ? 'professor' : 'student');
   };
 
-  // Render Student Profile View (Read-Only)
+  // Render Student Profile View (Settings Panel)
   const renderStudentProfileView = () => {
     return (
       <StudentProfileScreen
         profile={studentProfile}
         onLogout={handleLogout}
+        isDarkMode={isDarkMode}
+        setIsDarkMode={setIsDarkMode}
+        appLanguage={appLanguage}
+        setAppLanguage={setAppLanguage}
+        appFontSize={appFontSize}
+        setAppFontSize={setAppFontSize}
       />
     );
   };
@@ -452,6 +492,8 @@ export default function App() {
               onNavigateToLauncher={() => setProfessorTab('launcher')}
               onNavigateToSubjects={() => setProfessorTab('subjects')}
               onNavigateToHistory={() => setProfessorTab('history')}
+              historyLogs={historyLogs}
+              isDarkMode={isDarkMode}
             />
           );
         case 'launcher':
@@ -464,6 +506,7 @@ export default function App() {
               onEndSession={handleEndSession}
               liveRecords={liveRecords}
               onRegisterClassroom={handleRegisterClassroom}
+              isDarkMode={isDarkMode}
             />
           );
         case 'subjects':
@@ -471,6 +514,7 @@ export default function App() {
             <ProfessorSubjectsScreen
               subjects={professorSubjects}
               onSaveSubjects={handleSaveProfessorSubjects}
+              isDarkMode={isDarkMode}
             />
           );
         case 'history':
@@ -478,6 +522,21 @@ export default function App() {
             <HistoryScreen
               logs={historyLogs}
               role="professor"
+              isDarkMode={isDarkMode}
+            />
+          );
+        case 'profile':
+          return (
+            <ProfessorProfileScreen
+              onLogout={handleLogout}
+              isDarkMode={isDarkMode}
+              setIsDarkMode={setIsDarkMode}
+              appLanguage={appLanguage}
+              setAppLanguage={setAppLanguage}
+              appFontSize={appFontSize}
+              setAppFontSize={setAppFontSize}
+              currentUserName={currentUser?.name || 'Dr. Jane Smith'}
+              historyLogs={historyLogs}
             />
           );
       }
@@ -489,6 +548,8 @@ export default function App() {
               studentProfile={studentProfile}
               activeSession={activeSession}
               onNavigateToCheckIn={() => setStudentTab('checkin')}
+              historyLogs={historyLogs}
+              isDarkMode={isDarkMode}
             />
           );
         case 'checkin':
@@ -500,16 +561,18 @@ export default function App() {
               classroomCoords={classrooms}
               onSubmitGeneralExcuse={handleStudentGeneralExcuseSubmit}
               subjects={INITIAL_SUBJECTS}
+              isDarkMode={isDarkMode}
             />
           );
         case 'timetable':
-          return <StudentTimetableScreen />;
+          return <StudentTimetableScreen isDarkMode={isDarkMode} />;
         case 'history':
           return (
             <HistoryScreen
               logs={historyLogs}
               role="student"
               studentId={studentProfile.studentId}
+              isDarkMode={isDarkMode}
             />
           );
         case 'profile':
@@ -519,11 +582,11 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="dark" />
-      <View style={styles.appContainer}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: isDarkMode ? '#111827' : '#ffffff' }]}>
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+      <View style={[styles.appContainer, { backgroundColor: isDarkMode ? '#111827' : '#ffffff' }]}>
         {showSplash ? (
-          <Animated.View style={[styles.splashOverlay, { opacity: splashOpacity }]}>
+          <Animated.View style={[styles.splashOverlay, { opacity: splashOpacity, backgroundColor: isDarkMode ? '#111827' : '#ffffff' }]}>
             <View style={styles.splashContent}>
               <Animated.Image
                 source={require('./assets/logo.png')}
@@ -535,21 +598,32 @@ export default function App() {
                 ]}
                 resizeMode="contain"
               />
-              <ActivityIndicator size="small" color="#001833" style={styles.splashLoader} />
-              <Text style={styles.splashVersion}>Version 1.0</Text>
+              <ActivityIndicator size="small" color={isDarkMode ? '#ffffff' : '#001833'} style={styles.splashLoader} />
+              <Text style={[styles.splashVersion, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Version 1.0</Text>
             </View>
           </Animated.View>
         ) : !isAuthenticated ? (
-          <AuthScreen onLoginSuccess={handleLoginSuccess} />
+          <AuthScreen onLoginSuccess={handleLoginSuccess} isDarkMode={isDarkMode} />
         ) : (
           <>
-            <View style={styles.appHeader}>
-              <Image source={require('./assets/icon.png')} style={styles.headerLogo} resizeMode="contain" />
+            <View style={[styles.appHeader, { backgroundColor: isDarkMode ? '#1F2937' : '#ffffff', borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB' }]}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (role === 'student') {
+                    setStudentTab('dashboard');
+                  } else {
+                    setProfessorTab('dashboard');
+                  }
+                }}
+                activeOpacity={0.7}
+              >
+                <Image source={require('./assets/icon.png')} style={styles.headerLogo} resizeMode="contain" />
+              </TouchableOpacity>
               
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, position: 'relative', zIndex: 1000 }}>
-                <TouchableOpacity style={styles.roleTogglePill} onPress={toggleRole}>
-                  <Text style={styles.roleToggleText}>
-                    Role: <Text style={styles.roleTextHighlight}>{role.toUpperCase()}</Text>
+                <TouchableOpacity style={[styles.roleTogglePill, { backgroundColor: isDarkMode ? '#374151' : '#F3F4F6' }]} onPress={toggleRole}>
+                  <Text style={[styles.roleToggleText, { color: isDarkMode ? '#E5E7EB' : '#374151' }]}>
+                    Role: <Text style={styles.roleTextHighlight}>{currentUser?.name || role.toUpperCase()}</Text>
                   </Text>
                 </TouchableOpacity>
 
@@ -558,7 +632,7 @@ export default function App() {
                   onPress={() => Alert.alert('🔔 Notifications', 'No new class session updates at the moment.')}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="notifications-outline" size={22} color="#111827" />
+                  <Ionicons name="notifications-outline" size={22} color={isDarkMode ? '#F3F4F6' : '#111827'} />
                   <View 
                     style={{ 
                       position: 'absolute', 
@@ -578,12 +652,12 @@ export default function App() {
                   onPress={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="ellipsis-vertical" size={20} color="#111827" />
+                  <Ionicons name="ellipsis-vertical" size={20} color={isDarkMode ? '#F3F4F6' : '#111827'} />
                 </TouchableOpacity>
 
                 {/* Settings & Logout Dropdown Menu */}
                 {isRoleDropdownOpen && (
-                  <View style={[styles.roleDropdownMenu, { top: 40, right: 0 }]}>
+                  <View style={[styles.roleDropdownMenu, { top: 40, right: 0, backgroundColor: isDarkMode ? '#1F2937' : '#ffffff', borderColor: isDarkMode ? '#374151' : '#E5E7EB' }]}>
                     <TouchableOpacity 
                       style={styles.dropdownMenuItem}
                       onPress={() => {
@@ -591,15 +665,15 @@ export default function App() {
                         if (role === 'student') {
                           setStudentTab('profile');
                         } else {
-                          setProfessorTab('subjects');
+                          setProfessorTab('profile');
                         }
                       }}
                     >
-                      <Ionicons name="settings-outline" size={15} color="#111827" style={{ marginRight: 8 }} />
-                      <Text style={styles.dropdownMenuItemText}>Settings</Text>
+                      <Ionicons name="settings-outline" size={15} color={isDarkMode ? '#F3F4F6' : '#111827'} style={{ marginRight: 8 }} />
+                      <Text style={[styles.dropdownMenuItemText, { color: isDarkMode ? '#F3F4F6' : '#111827' }]}>Settings</Text>
                     </TouchableOpacity>
 
-                    <View style={styles.dropdownMenuDivider} />
+                    <View style={[styles.dropdownMenuDivider, { backgroundColor: isDarkMode ? '#374151' : '#E5E7EB' }]} />
 
                     <TouchableOpacity 
                       style={styles.dropdownMenuItem}
@@ -617,10 +691,10 @@ export default function App() {
             </View>
 
             {/* Content View */}
-            <View style={styles.mainContent}>{renderActiveScreen()}</View>
+            <View style={[styles.mainContent, { backgroundColor: isDarkMode ? '#111827' : '#ffffff' }]}>{renderActiveScreen()}</View>
 
             {/* Dynamic Bottom Navigation tab bar depending on Role */}
-            <View style={styles.tabBar}>
+            <View style={[styles.tabBar, { backgroundColor: isDarkMode ? '#1F2937' : '#ffffff', borderTopColor: isDarkMode ? '#374151' : '#E5E7EB' }]}>
               {role === 'professor' ? (
                 <>
                   <TouchableOpacity
@@ -631,9 +705,9 @@ export default function App() {
                     <Ionicons
                       name={professorTab === 'dashboard' ? 'grid' : 'grid-outline'}
                       size={20}
-                      color={professorTab === 'dashboard' ? '#1E5EFF' : '#6B7280'}
+                      color={professorTab === 'dashboard' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')}
                     />
-                    <Text style={[styles.tabLabel, professorTab === 'dashboard' && styles.tabLabelActive]}>
+                    <Text style={[styles.tabLabel, professorTab === 'dashboard' && styles.tabLabelActive, { color: professorTab === 'dashboard' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280') }]}>
                       Dashboard
                     </Text>
                   </TouchableOpacity>
@@ -646,9 +720,9 @@ export default function App() {
                     <Ionicons
                       name={professorTab === 'launcher' ? 'rocket' : 'rocket-outline'}
                       size={20}
-                      color={professorTab === 'launcher' ? '#1E5EFF' : '#6B7280'}
+                      color={professorTab === 'launcher' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')}
                     />
-                    <Text style={[styles.tabLabel, professorTab === 'launcher' && styles.tabLabelActive]}>
+                    <Text style={[styles.tabLabel, professorTab === 'launcher' && styles.tabLabelActive, { color: professorTab === 'launcher' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280') }]}>
                       Roll Call
                     </Text>
                   </TouchableOpacity>
@@ -661,9 +735,9 @@ export default function App() {
                     <Ionicons
                       name={professorTab === 'subjects' ? 'book' : 'book-outline'}
                       size={20}
-                      color={professorTab === 'subjects' ? '#1E5EFF' : '#6B7280'}
+                      color={professorTab === 'subjects' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')}
                     />
-                    <Text style={[styles.tabLabel, professorTab === 'subjects' && styles.tabLabelActive]}>
+                    <Text style={[styles.tabLabel, professorTab === 'subjects' && styles.tabLabelActive, { color: professorTab === 'subjects' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280') }]}>
                       Subjects
                     </Text>
                   </TouchableOpacity>
@@ -676,9 +750,9 @@ export default function App() {
                     <Ionicons
                       name={professorTab === 'history' ? 'calendar' : 'calendar-outline'}
                       size={20}
-                      color={professorTab === 'history' ? '#1E5EFF' : '#6B7280'}
+                      color={professorTab === 'history' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')}
                     />
-                    <Text style={[styles.tabLabel, professorTab === 'history' && styles.tabLabelActive]}>
+                    <Text style={[styles.tabLabel, professorTab === 'history' && styles.tabLabelActive, { color: professorTab === 'history' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280') }]}>
                       Logs
                     </Text>
                   </TouchableOpacity>
@@ -693,9 +767,9 @@ export default function App() {
                     <Ionicons
                       name={studentTab === 'dashboard' ? 'home' : 'home-outline'}
                       size={20}
-                      color={studentTab === 'dashboard' ? '#1E5EFF' : '#6B7280'}
+                      color={studentTab === 'dashboard' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')}
                     />
-                    <Text style={[styles.tabLabel, studentTab === 'dashboard' && styles.tabLabelActive]}>
+                    <Text style={[styles.tabLabel, studentTab === 'dashboard' && styles.tabLabelActive, { color: studentTab === 'dashboard' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280') }]}>
                       Dashboard
                     </Text>
                   </TouchableOpacity>
@@ -708,9 +782,9 @@ export default function App() {
                     <Ionicons
                       name={studentTab === 'checkin' ? 'qr-code' : 'qr-code-outline'}
                       size={20}
-                      color={studentTab === 'checkin' ? '#1E5EFF' : '#6B7280'}
+                      color={studentTab === 'checkin' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')}
                     />
-                    <Text style={[styles.tabLabel, studentTab === 'checkin' && styles.tabLabelActive]}>
+                    <Text style={[styles.tabLabel, studentTab === 'checkin' && styles.tabLabelActive, { color: studentTab === 'checkin' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280') }]}>
                       Check In
                     </Text>
                   </TouchableOpacity>
@@ -723,9 +797,9 @@ export default function App() {
                     <Ionicons
                       name={studentTab === 'timetable' ? 'calendar' : 'calendar-outline'}
                       size={20}
-                      color={studentTab === 'timetable' ? '#1E5EFF' : '#6B7280'}
+                      color={studentTab === 'timetable' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')}
                     />
-                    <Text style={[styles.tabLabel, studentTab === 'timetable' && styles.tabLabelActive]}>
+                    <Text style={[styles.tabLabel, studentTab === 'timetable' && styles.tabLabelActive, { color: studentTab === 'timetable' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280') }]}>
                       Timetable
                     </Text>
                   </TouchableOpacity>
@@ -738,9 +812,9 @@ export default function App() {
                     <Ionicons
                       name={studentTab === 'history' ? 'time' : 'time-outline'}
                       size={20}
-                      color={studentTab === 'history' ? '#1E5EFF' : '#6B7280'}
+                      color={studentTab === 'history' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')}
                     />
-                    <Text style={[styles.tabLabel, studentTab === 'history' && styles.tabLabelActive]}>
+                    <Text style={[styles.tabLabel, studentTab === 'history' && styles.tabLabelActive, { color: studentTab === 'history' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280') }]}>
                       Logs
                     </Text>
                   </TouchableOpacity>
@@ -753,9 +827,9 @@ export default function App() {
                     <Ionicons
                       name={studentTab === 'profile' ? 'person' : 'person-outline'}
                       size={20}
-                      color={studentTab === 'profile' ? '#1E5EFF' : '#6B7280'}
+                      color={studentTab === 'profile' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280')}
                     />
-                    <Text style={[styles.tabLabel, studentTab === 'profile' && styles.tabLabelActive]}>
+                    <Text style={[styles.tabLabel, studentTab === 'profile' && styles.tabLabelActive, { color: studentTab === 'profile' ? '#1E5EFF' : (isDarkMode ? '#9CA3AF' : '#6B7280') }]}>
                       Identity
                     </Text>
                   </TouchableOpacity>
@@ -773,129 +847,466 @@ export default function App() {
 interface ProfileProps {
   profile: StudentProfile;
   onLogout: () => void;
+  isDarkMode: boolean;
+  setIsDarkMode: (val: boolean) => void;
+  appLanguage: 'English' | 'Filipino' | 'Spanish';
+  setAppLanguage: (val: 'English' | 'Filipino' | 'Spanish') => void;
+  appFontSize: 'Small' | 'Medium' | 'Large';
+  setAppFontSize: (val: 'Small' | 'Medium' | 'Large') => void;
 }
 
-function StudentProfileScreen({ profile, onLogout }: ProfileProps) {
+function StudentProfileScreen({
+  profile,
+  onLogout,
+  isDarkMode,
+  setIsDarkMode,
+  appLanguage,
+  setAppLanguage,
+  appFontSize,
+  setAppFontSize,
+}: ProfileProps) {
   const id = profile.studentId;
   const name = profile.studentName;
   const year = profile.year;
   const section = profile.section;
   const isIrregular = profile.isIrregular;
-  const homeAddress = profile.homeAddress;
-  const hasSecondAddress = profile.hasSecondAddress || false;
-  const secondAddress = profile.secondAddress || '';
+
+  // Accordion Toggle States
+  const [isAccountOpen, setIsAccountOpen] = useState(true);
+  const [isAppearanceOpen, setIsAppearanceOpen] = useState(false);
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
+
+  // Form State Values
+  const [email, setEmail] = useState(`${id}@university.edu.ph`);
+  const [password, setPassword] = useState('••••••••••••');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  
+  // System theme is local state
+  const [systemTheme, setSystemTheme] = useState(true);
+
+  // Hardcoded device identifier
+  const [hardwareId, setHardwareId] = useState('F8C2-E40B-998A-3211-DE5F');
+
+  // Translation mapping dictionary
+  const translations = {
+    English: {
+      title: 'Settings & Profile',
+      sub: 'Manage your student account, modify appearance options, and review privacy details.',
+      account: 'Account',
+      profileInfo: 'Profile Information',
+      studentId: 'Student ID',
+      email: 'University Email',
+      password: 'Security Password',
+      linkedDevices: 'Linked Devices',
+      appearance: 'Appearance',
+      lightDark: 'Light / Dark Mode',
+      lightDarkSub: 'Switch app color mode layout',
+      systemTheme: 'System Theme',
+      systemThemeSub: 'Sync theme to match mobile OS',
+      language: 'App Language',
+      languageSub: 'Currently configured vocabulary',
+      fontSize: 'Font Size',
+      privacy: 'Privacy & Security',
+      privacyPolicy: 'Privacy Policy',
+      terms: 'Terms & Conditions',
+      delete: 'Delete Account',
+      logout: 'Log Out Account',
+      about: 'About Attenza',
+    },
+    Filipino: {
+      title: 'Mga Setting at Profile',
+      sub: 'Pamahalaan ang iyong account ng mag-aaral, baguhin ang mga pagpipilian sa hitsura, at suriin ang mga detalye ng privacy.',
+      account: 'Account',
+      profileInfo: 'Impormasyon ng Profile',
+      studentId: 'Student ID',
+      email: 'Email ng Unibersidad',
+      password: 'Password sa Seguridad',
+      linkedDevices: 'Mga Nakakonektang Device',
+      appearance: 'Hitsura',
+      lightDark: 'Light / Dark Mode',
+      lightDarkSub: 'Baguhin ang kulay at tema ng app',
+      systemTheme: 'Tema ng Sistema',
+      systemThemeSub: 'I-sync ang tema sa mobile OS',
+      language: 'Wika ng App',
+      languageSub: 'Kasalukuyang ginagamit na wika',
+      fontSize: 'Laki ng Font',
+      privacy: 'Privacy at Seguridad',
+      privacyPolicy: 'Patakaran sa Privacy',
+      terms: 'Mga Tuntunin at Kundisyon',
+      delete: 'I-delete ang Account',
+      logout: 'Mag-log Out ng Account',
+      about: 'Tungkol sa Attenza',
+    },
+    Spanish: {
+      title: 'Configuración y Perfil',
+      sub: 'Administre su cuenta de estudiante, modifique las opciones de apariencia y revise los detalles de privacidad.',
+      account: 'Cuenta',
+      profileInfo: 'Información de Perfil',
+      studentId: 'ID de Estudiante',
+      email: 'Correo de la Universidad',
+      password: 'Contraseña de Seguridad',
+      linkedDevices: 'Dispositivos Vinculados',
+      appearance: 'Apariencia',
+      lightDark: 'Modo Claro / Oscuro',
+      lightDarkSub: 'Cambiar el tema de color de la aplicación',
+      systemTheme: 'Tema del Sistema',
+      systemThemeSub: 'Sincronizar el tema con el sistema operativo móvil',
+      language: 'Idioma de la App',
+      languageSub: 'Vocabulario configurado actualmente',
+      fontSize: 'Tamaño de Fuente',
+      privacy: 'Privacidad y Seguridad',
+      privacyPolicy: 'Política de Privacidad',
+      terms: 'Términos y Condiciones',
+      delete: 'Eliminar Cuenta',
+      logout: 'Cerrar Sesión',
+      about: 'Acerca de Attenza',
+    }
+  };
+  const t = translations[appLanguage] || translations.English;
+
+  // Active theme properties
+  const theme = {
+    bg: isDarkMode ? '#111827' : '#FAFBFC',
+    text: isDarkMode ? '#F9FAFB' : '#111827',
+    subText: isDarkMode ? '#9CA3AF' : '#6B7280',
+    cardBg: isDarkMode ? '#1F2937' : '#ffffff',
+    cardBorder: isDarkMode ? '#374151' : '#E5E7EB',
+    disabledInputBg: isDarkMode ? '#37415160' : '#FAFBFC',
+    inputText: isDarkMode ? '#F3F4F6' : '#374151',
+    accordionHeaderBg: isDarkMode ? '#1F2937' : '#FAFBFC',
+    innerCardBg: isDarkMode ? '#11182740' : '#FAFBFC',
+    deviceDetailGroupBg: isDarkMode ? '#11182740' : '#F9FAFB',
+  };
+
+  // Active font scaling mapper
+  const getFontSize = (baseSize: number) => {
+    if (appFontSize === 'Small') return baseSize * 0.85;
+    if (appFontSize === 'Large') return baseSize * 1.15;
+    return baseSize;
+  };
+
+  const handleChangePassword = () => {
+    if (isChangingPassword) {
+      if (newPassword.trim().length < 6) {
+        Alert.alert('Weak Password', 'Password must be at least 6 characters.');
+        return;
+      }
+      setPassword(newPassword.replace(/./g, '•'));
+      setIsChangingPassword(false);
+      setNewPassword('');
+      Alert.alert('Success', 'Password changed successfully!');
+    } else {
+      setIsChangingPassword(true);
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      '⚠️ Delete Account',
+      'Are you sure you want to request account deletion? This action requires administrative approval from the University registrar.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Request Deletion', style: 'destructive', onPress: () => Alert.alert('Request Sent', 'Your account deletion request has been submitted for review.') }
+      ]
+    );
+  };
 
   return (
-    <ScrollView style={styles.profileContainer} showsVerticalScrollIndicator={false}>
+    <ScrollView style={[styles.profileContainer, { backgroundColor: theme.bg }]} showsVerticalScrollIndicator={false}>
       <View style={styles.profileHeader}>
-        <Text style={styles.profileHeaderTitle}>Student Credentials</Text>
-        <Text style={styles.profileHeaderSub}>🔒 Registered identity details. Profile modifications are locked for security verification.</Text>
+        <Text style={[styles.profileHeaderTitle, { color: theme.text, fontSize: getFontSize(20) }]}>{t.title}</Text>
+        <Text style={[styles.profileHeaderSub, { color: theme.subText, fontSize: getFontSize(12) }]}>{t.sub}</Text>
       </View>
 
-      <View style={styles.card}>
-        <View style={styles.idCardHeader}>
-          <View style={[styles.avatarCircleLarge, { backgroundColor: '#1E5EFF' }]}>
-            <Text style={styles.avatarTextLarge}>{name.slice(0, 1).toUpperCase() || '👤'}</Text>
+      {/* ACCORDION 1: ACCOUNT */}
+      <View style={[styles.accordionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+        <TouchableOpacity 
+          style={[styles.accordionHeader, { backgroundColor: theme.accordionHeaderBg }]} 
+          onPress={() => setIsAccountOpen(!isAccountOpen)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.accordionHeaderLeft}>
+            <Ionicons name="person-circle" size={24} color="#1E5EFF" style={{ marginRight: 10 }} />
+            <Text style={[styles.accordionTitle, { color: theme.text, fontSize: getFontSize(14) }]}>{t.account}</Text>
           </View>
-          <View style={{ flex: 1 }}>
-            <View style={styles.idCardTitleRow}>
-              <Text style={styles.idCardName} numberOfLines={1}>{name || 'Student Name'}</Text>
-              {isIrregular && (
-                <View style={styles.idCardIrregBadge}>
-                  <Text style={styles.idCardIrregBadgeText}>IRREGULAR</Text>
+          <Ionicons 
+            name={isAccountOpen ? 'chevron-up-outline' : 'chevron-down-outline'} 
+            size={18} 
+            color={theme.subText} 
+          />
+        </TouchableOpacity>
+
+        {isAccountOpen && (
+          <View style={[styles.accordionBody, { borderTopColor: theme.cardBorder }]}>
+            {/* Profile Information ID Card preview */}
+            <View style={[styles.innerCard, { backgroundColor: theme.innerCardBg, borderColor: theme.cardBorder }]}>
+              <View style={styles.idCardHeader}>
+                <View style={[styles.avatarCircleLarge, { backgroundColor: '#1E5EFF', width: 44, height: 44, borderRadius: 22 }]}>
+                  <Text style={[styles.avatarTextLarge, { fontSize: getFontSize(18) }]}>{name.slice(0, 1).toUpperCase() || '👤'}</Text>
                 </View>
-              )}
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.idCardName, { color: theme.text, fontSize: getFontSize(15) }]}>{name}</Text>
+                  <Text style={[styles.idCardClass, { color: theme.subText, fontSize: getFontSize(11), marginTop: 1 }]}>
+                    {formatAcademicSection('CS 402', year, section)}  •  {isIrregular ? 'Irregular' : 'Regular'}
+                  </Text>
+                </View>
+              </View>
             </View>
-            <Text style={styles.idCardNum}>ID: {id || '---'}</Text>
-            <Text style={styles.idCardClass}>{year} • {section}</Text>
-            <Text style={styles.idCardHome} numberOfLines={1}>📍 Primary: {homeAddress || 'No Address Set'}</Text>
-            {hasSecondAddress && (
-              <Text style={styles.idCardHome} numberOfLines={1}>🏠 Boarding: {secondAddress || 'No Address Set'}</Text>
-            )}
-          </View>
-        </View>
-      </View>
 
-
-
-      <View style={styles.formCard}>
-        <Text style={styles.formLabel}>Full Name</Text>
-        <TextInput
-          style={[styles.input, styles.disabledInput]}
-          value={name}
-          editable={false}
-        />
-
-        <Text style={styles.formLabel}>Student ID Number</Text>
-        <TextInput
-          style={[styles.input, styles.disabledInput]}
-          value={id}
-          editable={false}
-        />
-
-        <Text style={styles.formLabel}>Year Level</Text>
-        <TextInput
-          style={[styles.input, styles.disabledInput]}
-          value={year}
-          editable={false}
-        />
-
-        <Text style={styles.formLabel}>Section</Text>
-        <TextInput
-          style={[styles.input, styles.disabledInput]}
-          value={section}
-          editable={false}
-        />
-
-        <Text style={styles.formLabel}>Primary Home Address</Text>
-        <TextInput
-          style={[styles.input, styles.disabledInput]}
-          value={homeAddress}
-          editable={false}
-        />
-
-        {hasSecondAddress && (
-          <>
-            <Text style={styles.formLabel}>Secondary Address (Boarding House/Apartment)</Text>
+            {/* Profile Information details (Disabled inputs) */}
+            <Text style={[styles.formLabel, { color: theme.subText, fontSize: getFontSize(10) }]}>{t.profileInfo}</Text>
             <TextInput
-              style={[styles.input, styles.disabledInput]}
-              value={secondAddress}
+              style={[styles.input, styles.disabledInput, { backgroundColor: theme.disabledInputBg, color: theme.subText, fontSize: getFontSize(13), borderColor: theme.cardBorder }]}
+              value={name}
               editable={false}
             />
-          </>
-        )}
 
-        {/* Enrollment Status toggle - Disabled */}
-        <View style={styles.statusSwitchRow}>
-          <View>
-            <Text style={styles.switchLabel}>Irregular Student</Text>
-            <Text style={styles.switchSubText}>Enable if taking courses outside curriculum year</Text>
+            {/* Student ID */}
+            <Text style={[styles.formLabel, { color: theme.subText, fontSize: getFontSize(10) }]}>{t.studentId}</Text>
+            <TextInput
+              style={[styles.input, styles.disabledInput, { backgroundColor: theme.disabledInputBg, color: theme.subText, fontSize: getFontSize(13), borderColor: theme.cardBorder }]}
+              value={id}
+              editable={false}
+            />
+
+            {/* University Email */}
+            <Text style={[styles.formLabel, { color: theme.subText, fontSize: getFontSize(10) }]}>{t.email}</Text>
+            <TextInput
+              style={[styles.input, styles.disabledInput, { backgroundColor: theme.disabledInputBg, color: theme.subText, fontSize: getFontSize(13), borderColor: theme.cardBorder }]}
+              value={email}
+              editable={false}
+            />
+
+            {/* Change Password */}
+            <Text style={[styles.formLabel, { color: theme.subText, fontSize: getFontSize(10) }]}>{t.password}</Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+              <TextInput
+                style={[styles.input, { flex: 1, marginBottom: 0, backgroundColor: theme.cardBg, color: theme.inputText, fontSize: getFontSize(13), borderColor: theme.cardBorder }]}
+                value={isChangingPassword ? newPassword : password}
+                onChangeText={setNewPassword}
+                secureTextEntry={isChangingPassword}
+                placeholder={isChangingPassword ? 'Enter new password' : ''}
+                placeholderTextColor={theme.subText}
+                editable={isChangingPassword}
+              />
+              <TouchableOpacity style={styles.innerBtn} onPress={handleChangePassword}>
+                <Text style={[styles.innerBtnText, { fontSize: getFontSize(12) }]}>{isChangingPassword ? 'Confirm' : 'Change'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Linked Devices */}
+            <Text style={[styles.formLabel, { color: theme.subText, fontSize: getFontSize(10) }]}>{t.linkedDevices}</Text>
+            <View style={[styles.deviceDetailGroup, { backgroundColor: theme.deviceDetailGroupBg, borderColor: theme.cardBorder }]}>
+              <View style={styles.deviceDetailRow}>
+                <Text style={[styles.deviceDetailLabel, { color: theme.subText, fontSize: getFontSize(11) }]}>Active Device Signature:</Text>
+                <Text style={[styles.deviceDetailVal, { color: theme.text, fontSize: getFontSize(10.5) }]}>{hardwareId}</Text>
+              </View>
+              <View style={styles.deviceDetailRow}>
+                <Text style={[styles.deviceDetailLabel, { color: theme.subText, fontSize: getFontSize(11) }]}>Hardware Status:</Text>
+                <Text style={[styles.deviceDetailVal, { color: '#22C55E', fontWeight: '800', fontSize: getFontSize(11) }]}>✓ Verified & Device Locked</Text>
+              </View>
+            </View>
           </View>
-          <Switch
-            value={isIrregular}
-            disabled={true}
-            trackColor={{ false: '#e5e7eb', true: '#F59E0B' }}
-            thumbColor="#ffffff"
-            style={Platform.OS === 'web' ? { transform: [{ scale: 0.8 }] } as any : {}}
-          />
-        </View>
-
-        <TouchableOpacity 
-          style={{ 
-            backgroundColor: '#EF44440d', 
-            borderColor: '#EF444430', 
-            borderWidth: 1, 
-            borderRadius: 12, 
-            paddingVertical: 14, 
-            alignItems: 'center', 
-            marginTop: 16 
-          }} 
-          onPress={onLogout}
-          activeOpacity={0.8}
-        >
-          <Text style={{ color: '#EF4444', fontSize: 13, fontWeight: '800' }}>Log Out Account</Text>
-        </TouchableOpacity>
+        )}
       </View>
+
+      {/* ACCORDION 2: APPEARANCE */}
+      <View style={[styles.accordionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+        <TouchableOpacity 
+          style={[styles.accordionHeader, { backgroundColor: theme.accordionHeaderBg }]} 
+          onPress={() => setIsAppearanceOpen(!isAppearanceOpen)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.accordionHeaderLeft}>
+            <Ionicons name="color-palette" size={24} color="#1E5EFF" style={{ marginRight: 10 }} />
+            <Text style={[styles.accordionTitle, { color: theme.text, fontSize: getFontSize(14) }]}>{t.appearance}</Text>
+          </View>
+          <Ionicons 
+            name={isAppearanceOpen ? 'chevron-up-outline' : 'chevron-down-outline'} 
+            size={18} 
+            color={theme.subText} 
+          />
+        </TouchableOpacity>
+
+        {isAppearanceOpen && (
+          <View style={[styles.accordionBody, { borderTopColor: theme.cardBorder }]}>
+            {/* Light/Dark Mode */}
+            <View style={[styles.settingToggleRow, { borderBottomColor: theme.cardBorder }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.settingMainText, { color: theme.text, fontSize: getFontSize(12.5) }]}>{t.lightDark}</Text>
+                <Text style={[styles.settingSubText, { color: theme.subText, fontSize: getFontSize(9.5) }]}>{t.lightDarkSub}</Text>
+              </View>
+              <Switch
+                value={isDarkMode}
+                onValueChange={setIsDarkMode}
+                trackColor={{ false: '#E5E7EB', true: '#1E5EFF' }}
+                thumbColor="#FFFFFF"
+                style={Platform.OS === 'web' ? { transform: [{ scale: 0.8 }] } as any : {}}
+              />
+            </View>
+
+            {/* System Theme */}
+            <View style={[styles.settingToggleRow, { borderBottomColor: theme.cardBorder }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.settingMainText, { color: theme.text, fontSize: getFontSize(12.5) }]}>{t.systemTheme}</Text>
+                <Text style={[styles.settingSubText, { color: theme.subText, fontSize: getFontSize(9.5) }]}>{t.systemThemeSub}</Text>
+              </View>
+              <Switch
+                value={systemTheme}
+                onValueChange={setSystemTheme}
+                trackColor={{ false: '#E5E7EB', true: '#1E5EFF' }}
+                thumbColor="#FFFFFF"
+                style={Platform.OS === 'web' ? { transform: [{ scale: 0.8 }] } as any : {}}
+              />
+            </View>
+
+            {/* App Language */}
+            <View style={[styles.settingToggleRow, { borderBottomColor: theme.cardBorder }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.settingMainText, { color: theme.text, fontSize: getFontSize(12.5) }]}>{t.language}</Text>
+                <Text style={[styles.settingSubText, { color: theme.subText, fontSize: getFontSize(9.5) }]}>{t.languageSub}</Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.badgeSelector, { backgroundColor: theme.innerCardBg, borderColor: theme.cardBorder }]}
+                onPress={() => {
+                  Alert.alert(
+                    'App Language',
+                    'Select your preferred display language:',
+                    [
+                      { text: 'English', onPress: () => setAppLanguage('English') },
+                      { text: 'Filipino', onPress: () => setAppLanguage('Filipino') },
+                      { text: 'Spanish', onPress: () => setAppLanguage('Spanish') },
+                      { text: 'Cancel', style: 'cancel' }
+                    ]
+                  );
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.badgeSelectorText}>{appLanguage} ▾</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Font Size Selector */}
+            <Text style={[styles.formLabel, { color: theme.subText, fontSize: getFontSize(10) }]}>{t.fontSize}</Text>
+            <View style={styles.fontSizeRow}>
+              {(['Small', 'Medium', 'Large'] as const).map((sz) => (
+                <TouchableOpacity
+                  key={sz}
+                  style={[styles.fontSizePill, { borderColor: theme.cardBorder, backgroundColor: theme.innerCardBg }, appFontSize === sz && styles.fontSizePillActive]}
+                  onPress={() => setAppFontSize(sz)}
+                >
+                  <Text style={[styles.fontSizeText, { fontSize: getFontSize(11) }, appFontSize === sz && styles.fontSizeTextActive]}>{sz}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+      </View>
+
+      {/* ACCORDION 3: ABOUT */}
+      <View style={[styles.accordionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+        <TouchableOpacity 
+          style={[styles.accordionHeader, { backgroundColor: theme.accordionHeaderBg }]} 
+          onPress={() => setIsAboutOpen(!isAboutOpen)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.accordionHeaderLeft}>
+            <Ionicons name="information-circle" size={24} color="#1E5EFF" style={{ marginRight: 10 }} />
+            <Text style={[styles.accordionTitle, { color: theme.text, fontSize: getFontSize(14) }]}>{t.about}</Text>
+          </View>
+          <Ionicons 
+            name={isAboutOpen ? 'chevron-up-outline' : 'chevron-down-outline'} 
+            size={18} 
+            color={theme.subText} 
+          />
+        </TouchableOpacity>
+
+        {isAboutOpen && (
+          <View style={[styles.accordionBody, { borderTopColor: theme.cardBorder }]}>
+            {/* App version */}
+            <View style={[styles.settingToggleRow, { borderBottomColor: theme.cardBorder }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.settingMainText, { color: theme.text, fontSize: getFontSize(12.5) }]}>App Version</Text>
+                <Text style={[styles.settingSubText, { color: theme.subText, fontSize: getFontSize(9.5) }]}>Current release code package</Text>
+              </View>
+              <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: getFontSize(12.5) }}>Version 1.0.4</Text>
+            </View>
+
+            {/* Help Center */}
+            <TouchableOpacity 
+              style={[styles.legalLinkRow, { borderBottomColor: theme.cardBorder }]} 
+              onPress={() => Alert.alert('Help Center', 'Need assistance? Browse student help guides, selfie verification fixes, and geofencing coordinates instructions.')}
+            >
+              <Ionicons name="help-buoy-outline" size={18} color={theme.subText} style={{ marginRight: 8 }} />
+              <Text style={[styles.legalLinkText, { color: theme.text, fontSize: getFontSize(12.5) }]}>Help Center Portal</Text>
+              <Ionicons name="chevron-forward-outline" size={14} color={theme.subText} style={{ marginLeft: 'auto' }} />
+            </TouchableOpacity>
+
+            {/* Contact Support */}
+            <TouchableOpacity 
+              style={[styles.legalLinkRow, { borderBottomColor: theme.cardBorder }]} 
+              onPress={() => Alert.alert('Contact Support', 'Official IT administration support email: support.attenza@university.edu.ph')}
+            >
+              <Ionicons name="mail-outline" size={18} color={theme.subText} style={{ marginRight: 8 }} />
+              <Text style={[styles.legalLinkText, { color: theme.text, fontSize: getFontSize(12.5) }]}>Contact Support</Text>
+              <Ionicons name="chevron-forward-outline" size={14} color={theme.subText} style={{ marginLeft: 'auto' }} />
+            </TouchableOpacity>
+
+            {/* Report a Bug */}
+            <TouchableOpacity 
+              style={[styles.legalLinkRow, { borderBottomColor: theme.cardBorder }]} 
+              onPress={() => Alert.alert('Report a Bug', 'Found an issue with geofence proximity or scanning failures? Tap to log a telemetry report file.')}
+            >
+              <Ionicons name="bug-outline" size={18} color={theme.subText} style={{ marginRight: 8 }} />
+              <Text style={[styles.legalLinkText, { color: theme.text, fontSize: getFontSize(12.5) }]}>Report a Bug</Text>
+              <Ionicons name="chevron-forward-outline" size={14} color={theme.subText} style={{ marginLeft: 'auto' }} />
+            </TouchableOpacity>
+
+            {/* Privacy Policy */}
+            <TouchableOpacity 
+              style={[styles.legalLinkRow, { borderBottomColor: theme.cardBorder }]} 
+              onPress={() => Alert.alert('Privacy Policy', 'Your personal account info, camera selfies, and GPS coordinate checkpoints are only visible to course instructors and are deleted automatically at the end of the academic period.')}
+            >
+              <Ionicons name="document-text-outline" size={18} color={theme.subText} style={{ marginRight: 8 }} />
+              <Text style={[styles.legalLinkText, { color: theme.text, fontSize: getFontSize(12.5) }]}>Privacy Policy</Text>
+              <Ionicons name="chevron-forward-outline" size={14} color={theme.subText} style={{ marginLeft: 'auto' }} />
+            </TouchableOpacity>
+
+            {/* Terms & Conditions */}
+            <TouchableOpacity 
+              style={[styles.legalLinkRow, { borderBottomColor: theme.cardBorder }]} 
+              onPress={() => Alert.alert('Terms & Conditions', 'By checking in on Attenza, you certify that you are physically present in the designated classroom and checking in on your own locked device. Proxy check-ins are strictly prohibited.')}
+            >
+              <Ionicons name="ribbon-outline" size={18} color={theme.subText} style={{ marginRight: 8 }} />
+              <Text style={[styles.legalLinkText, { color: theme.text, fontSize: getFontSize(12.5) }]}>Terms & Conditions</Text>
+              <Ionicons name="chevron-forward-outline" size={14} color={theme.subText} style={{ marginLeft: 'auto' }} />
+            </TouchableOpacity>
+
+            {/* Delete Account */}
+            <TouchableOpacity 
+              style={[styles.deleteAccountBtn, { borderColor: isDarkMode ? '#EF444450' : '#EF444420', marginTop: 14 }]} 
+              onPress={handleDeleteAccount}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="trash-outline" size={18} color="#EF4444" style={{ marginRight: 6 }} />
+              <Text style={[styles.deleteAccountBtnText, { fontSize: getFontSize(13) }]}>{t.delete}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
+      {/* LOG OUT BUTTON */}
+      <TouchableOpacity
+        style={styles.logoutBtn}
+        onPress={onLogout}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="log-out-outline" size={18} color="#EF4444" style={{ marginRight: 6 }} />
+        <Text style={[styles.logoutBtnText, { fontSize: getFontSize(13) }]}>{t.logout}</Text>
+      </TouchableOpacity>
+
       <View style={{ height: 40 }} />
     </ScrollView>
   );
@@ -1183,16 +1594,28 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    marginBottom: 40,
+    marginBottom: 20,
   },
   formLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
     color: '#6B7280',
     textTransform: 'uppercase',
     marginBottom: 6,
     marginTop: 14,
     letterSpacing: 0.5,
+  },
+  sectionTitleLabel: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  sectionSubLabel: {
+    fontSize: 10.5,
+    color: '#6B7280',
+    marginTop: 2,
+    marginBottom: 8,
+    lineHeight: 15,
   },
   input: {
     backgroundColor: '#ffffff',
@@ -1209,26 +1632,216 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
     color: '#6B7280',
   },
-  statusSwitchRow: {
+  switchRowContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 14,
+    justifyContent: 'space-between',
     backgroundColor: '#FAFBFC',
     borderWidth: 1,
     borderColor: '#E5E7EB',
     borderRadius: 8,
     padding: 12,
+    marginTop: 10,
+    marginBottom: 10,
   },
-  switchLabel: {
-    fontSize: 12,
+  switchRowLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#374151',
+    flex: 1,
+    marginRight: 10,
+  },
+  saveBtn: {
+    backgroundColor: '#1E5EFF',
+    borderRadius: 10,
+    paddingVertical: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 14,
+  },
+  saveBtnText: {
+    color: '#ffffff',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  settingToggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#E5E7EB',
+  },
+  settingToggleTextGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 15,
+  },
+  settingMainText: {
+    fontSize: 12.5,
     fontWeight: '700',
     color: '#111827',
   },
-  switchSubText: {
-    fontSize: 9,
+  settingSubText: {
+    fontSize: 9.5,
     color: '#6B7280',
     marginTop: 2,
   },
-
+  deviceDetailGroup: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    padding: 12,
+    marginTop: 8,
+  },
+  deviceDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  deviceDetailLabel: {
+    fontSize: 11,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  deviceDetailVal: {
+    fontSize: 11,
+    color: '#111827',
+    fontWeight: '700',
+  },
+  logoutBtn: {
+    flexDirection: 'row',
+    backgroundColor: '#EF44440d',
+    borderColor: '#EF444430',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    marginBottom: 30,
+  },
+  logoutBtnText: {
+    color: '#EF4444',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  accordionCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  accordionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#FAFBFC',
+  },
+  accordionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  accordionTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  accordionBody: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  innerCard: {
+    backgroundColor: '#FAFBFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    padding: 12,
+    marginBottom: 16,
+  },
+  innerBtn: {
+    backgroundColor: '#1E5EFF',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  innerBtnText: {
+    color: '#ffffff',
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  badgeSelector: {
+    backgroundColor: '#E5E7EB30',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  badgeSelectorText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1E5EFF',
+  },
+  fontSizeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  fontSizePill: {
+    flex: 1,
+    backgroundColor: '#FAFBFC',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  fontSizePillActive: {
+    backgroundColor: '#1E5EFF',
+    borderColor: '#1E5EFF',
+  },
+  fontSizeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#6B7280',
+  },
+  fontSizeTextActive: {
+    color: '#ffffff',
+  },
+  legalLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#E5E7EB',
+  },
+  legalLinkText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  deleteAccountBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EF44440d',
+    borderColor: '#EF444420',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 12,
+    marginTop: 18,
+  },
+  deleteAccountBtnText: {
+    color: '#EF4444',
+    fontWeight: '800',
+    fontSize: 13,
+  },
 });

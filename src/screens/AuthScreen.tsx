@@ -21,10 +21,14 @@ import {
   saveCurrentUser,
   saveStudentProfile,
   saveProfessorSubjects,
-} from '../data/storage';
+  loginUserAccount,
+  registerUserAccount,
+} from '../services/api';
+import { formatAcademicSection } from './HistoryScreen';
 
 interface Props {
   onLoginSuccess: (user: UserAccount, role: 'professor' | 'student') => void;
+  isDarkMode?: boolean;
 }
 
 // Google Places Autocomplete mock suggestions
@@ -86,7 +90,14 @@ const DotGrid = () => (
   </View>
 );
 
-export default function AuthScreen({ onLoginSuccess }: Props) {
+export default function AuthScreen({ onLoginSuccess, isDarkMode = false }: Props) {
+  const colors = {
+    bg: isDarkMode ? '#111827' : '#FAFBFC',
+    text: isDarkMode ? '#F9FAFB' : '#111827',
+    subText: isDarkMode ? '#9CA3AF' : '#6B7280',
+    cardBg: isDarkMode ? '#1F2937' : '#ffffff',
+    border: isDarkMode ? '#374151' : '#E5E7EB',
+  };
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [role, setRole] = useState<'professor' | 'student'>('student');
 
@@ -202,7 +213,6 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
     setProfSubjects(profSubjects.filter(s => s.id !== id));
   };
 
-  // Login handler
   const handleLoginSubmit = async () => {
     if (!usernameId.trim() || !password) {
       Alert.alert('Error', 'Please fill in all login credentials.');
@@ -210,24 +220,19 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
     }
 
     setLoading(true);
-    setTimeout(async () => {
+    try {
+      const match = await loginUserAccount(usernameId.trim(), password);
       setLoading(false);
-      const accounts = await getUserAccounts();
-      const match = accounts.find(
-        (acc) =>
-          acc.role === role &&
-          (acc.usernameId.toLowerCase() === usernameId.trim().toLowerCase() ||
-            acc.email.toLowerCase() === usernameId.trim().toLowerCase()) &&
-          acc.password === password
-      );
-
-      if (match) {
-        await saveCurrentUser(match);
-        onLoginSuccess(match, role);
-      } else {
+      if (match.role !== role) {
         Alert.alert('Login Failed', 'Incorrect ID/Email or password. Please verify your role selection.');
+        return;
       }
-    }, 1000);
+      await saveCurrentUser(match);
+      onLoginSuccess(match, role);
+    } catch (err: any) {
+      setLoading(false);
+      Alert.alert('Login Failed', err.message || 'Incorrect ID/Email or password. Please verify your role selection.');
+    }
   };
 
   // Signup Wizard triggers
@@ -257,104 +262,86 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
     }
 
     setLoading(true);
-    setTimeout(async () => {
-      setLoading(false);
-      const accounts = await getUserAccounts();
-      
-      // Check if username/ID is taken
-      const exists = accounts.some(acc => acc.usernameId.toLowerCase() === usernameId.trim().toLowerCase());
-      if (exists) {
-        Alert.alert('Error', 'This Username/ID is already registered.');
-        return;
-      }
-
-      // Save user account credentials
-      const newAccount: UserAccount = {
+    try {
+      const userPayload = {
         name: name.trim(),
         usernameId: usernameId.trim(),
         email: email.trim().toLowerCase(),
         password: password,
         role: role,
-        profileRegistered: true
+        year: yearGroup,
+        section: section,
+        isIrregular: isIrregular,
+        homeAddress: homeAddress,
+        homeLatitude: homeLat,
+        homeLongitude: homeLng,
+        hasSecondAddress: hasSecondAddress,
+        secondAddress: hasSecondAddress ? secondAddress : undefined,
+        secondLatitude: hasSecondAddress ? secondLat : undefined,
+        secondLongitude: hasSecondAddress ? secondLng : undefined,
       };
 
-      await saveUserAccounts([...accounts, newAccount]);
+      const newAccount = await registerUserAccount(userPayload);
       await saveCurrentUser(newAccount);
 
-      if (role === 'student') {
-        // Build and save locked student profile details
-        const profile: StudentProfile = {
-          studentId: usernameId.trim(),
-          studentName: name.trim(),
-          avatarColor: '#1E5EFF',
-          year: yearGroup,
-          section: section,
-          isIrregular: isIrregular,
-          homeAddress: homeAddress,
-          homeLatitude: homeLat,
-          homeLongitude: homeLng,
-          hasSecondAddress: hasSecondAddress,
-          secondAddress: hasSecondAddress ? secondAddress : undefined,
-          secondLatitude: hasSecondAddress ? secondLat : undefined,
-          secondLongitude: hasSecondAddress ? secondLng : undefined,
-        };
-        await saveStudentProfile(profile);
-      } else {
-        // Save professor initial subjects list
-        await saveProfessorSubjects(profSubjects);
+      if (role === 'professor') {
+        await saveProfessorSubjects(profSubjects, newAccount.usernameId);
       }
 
+      setLoading(false);
       Alert.alert('Registration Successful', `Welcome to Attenza, ${newAccount.name}!`);
       onLoginSuccess(newAccount, role);
-    }, 1500);
+    } catch (err: any) {
+      setLoading(false);
+      Alert.alert('Registration Failed', err.message || 'Registration request could not be processed.');
+    }
   };
 
-  // Render Login view
   if (authMode === 'login') {
     return (
-      <ScrollView style={styles.scrollStyle} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <View style={styles.backgroundSweep} />
-        <View style={styles.rightCircleBackground} />
+      <ScrollView style={[styles.scrollStyle, { backgroundColor: colors.bg }]} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <View style={[styles.backgroundSweep, isDarkMode && { backgroundColor: '#1e3a8a15', borderTopLeftRadius: 0 }]} />
+        <View style={[styles.rightCircleBackground, isDarkMode && { backgroundColor: '#1e3a8a10' }]} />
         <DotGrid />
         <View style={styles.brandingHeader}>
           <Image source={require('../../assets/logo.png')} style={styles.brandingLogoImage} resizeMode="contain" />
-          <Text style={styles.brandingSubText}>Secure Real-time Attendance Engine</Text>
+          <Text style={[styles.brandingSubText, { color: colors.subText }]}>Secure Real-time Attendance Engine</Text>
         </View>
 
-        <View style={styles.authCard}>
-          <Text style={styles.cardHeading}>Sign In</Text>
+        <View style={[styles.authCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+          <Text style={[styles.cardHeading, { color: colors.text }]}>Sign In</Text>
 
           {/* Role Segmented Selector */}
-          <View style={styles.roleToggleRow}>
+          <View style={[styles.roleToggleRow, { backgroundColor: isDarkMode ? '#111827' : '#f0f2f5' }]}>
             <TouchableOpacity 
-              style={[styles.roleBtn, role === 'student' && styles.roleBtnActive]} 
+              style={[styles.roleBtn, role === 'student' && styles.roleBtnActive, role !== 'student' && isDarkMode && { backgroundColor: 'transparent' }]} 
               onPress={() => setRole('student')}
             >
-              <Text style={[styles.roleBtnText, role === 'student' && styles.roleBtnTextActive]}>Student</Text>
+              <Text style={[styles.roleBtnText, role === 'student' && styles.roleBtnTextActive, role !== 'student' && { color: colors.subText }]}>Student</Text>
             </TouchableOpacity>
             <TouchableOpacity 
-              style={[styles.roleBtn, role === 'professor' && styles.roleBtnActive]} 
+              style={[styles.roleBtn, role === 'professor' && styles.roleBtnActive, role !== 'professor' && isDarkMode && { backgroundColor: 'transparent' }]} 
               onPress={() => setRole('professor')}
             >
-              <Text style={[styles.roleBtnText, role === 'professor' && styles.roleBtnTextActive]}>Professor</Text>
+              <Text style={[styles.roleBtnText, role === 'professor' && styles.roleBtnTextActive, role !== 'professor' && { color: colors.subText }]}>Professor</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.inputLabel}>Username, ID Number, or Email</Text>
+          <Text style={[styles.inputLabel, { color: colors.text }]}>Username, ID Number, or Email</Text>
           <TextInput
-            style={styles.textInput}
+            style={[styles.textInput, { backgroundColor: isDarkMode ? '#111827' : '#ffffff', color: colors.text, borderColor: colors.border }]}
             placeholder={role === 'student' ? "e.g. 2024-0518" : "e.g. prof1"}
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={colors.subText}
             autoCapitalize="none"
             value={usernameId}
             onChangeText={setUsernameId}
           />
 
-          <Text style={styles.inputLabel}>Password</Text>
+          <Text style={[styles.inputLabel, { color: colors.text }]}>Password</Text>
           <TextInput
-            style={styles.textInput}
+            style={[styles.textInput, { backgroundColor: isDarkMode ? '#111827' : '#ffffff', color: colors.text, borderColor: colors.border }]}
             placeholder="••••••••"
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={colors.subText}
             secureTextEntry={true}
             autoCapitalize="none"
             value={password}
@@ -370,7 +357,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.switchModeLink} onPress={() => { setAuthMode('signup'); setSignupStep(1); setPassword(''); setUsernameId(''); }}>
-            <Text style={styles.switchModeText}>Don't have an account? <Text style={styles.switchModeAccent}>Sign Up</Text></Text>
+            <Text style={[styles.switchModeText, { color: colors.subText }]}>Don't have an account? <Text style={styles.switchModeAccent}>Sign Up</Text></Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -379,72 +366,72 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
 
   if (signupStep === 1) {
     return (
-      <ScrollView style={styles.scrollStyle} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <View style={styles.backgroundSweep} />
-        <View style={styles.rightCircleBackground} />
+      <ScrollView style={[styles.scrollStyle, { backgroundColor: colors.bg }]} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <View style={[styles.backgroundSweep, isDarkMode && { backgroundColor: '#1e3a8a15', borderTopLeftRadius: 0 }]} />
+        <View style={[styles.rightCircleBackground, isDarkMode && { backgroundColor: '#1e3a8a10' }]} />
         <DotGrid />
         <View style={styles.brandingHeader}>
           <Image source={require('../../assets/logo.png')} style={styles.brandingLogoImage} resizeMode="contain" />
-          <Text style={styles.brandingSubText}>Create your secure account</Text>
+          <Text style={[styles.brandingSubText, { color: colors.subText }]}>Create your secure account</Text>
         </View>
 
-        <View style={styles.authCard}>
+        <View style={[styles.authCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
           <View style={styles.stepHeaderRow}>
-            <Text style={styles.cardHeading}>Sign Up</Text>
+            <Text style={[styles.cardHeading, { color: colors.text }]}>Sign Up</Text>
             <Text style={styles.stepIndicatorLabel}>Step 1 of 2</Text>
           </View>
 
           {/* Role Segmented Selector */}
-          <View style={styles.roleToggleRow}>
+          <View style={[styles.roleToggleRow, { backgroundColor: isDarkMode ? '#111827' : '#f0f2f5' }]}>
             <TouchableOpacity 
-              style={[styles.roleBtn, role === 'student' && styles.roleBtnActive]} 
+              style={[styles.roleBtn, role === 'student' && styles.roleBtnActive, role !== 'student' && isDarkMode && { backgroundColor: 'transparent' }]} 
               onPress={() => setRole('student')}
             >
-              <Text style={[styles.roleBtnText, role === 'student' && styles.roleBtnTextActive]}>Student</Text>
+              <Text style={[styles.roleBtnText, role === 'student' && styles.roleBtnTextActive, role !== 'student' && { color: colors.subText }]}>Student</Text>
             </TouchableOpacity>
             <TouchableOpacity 
-              style={[styles.roleBtn, role === 'professor' && styles.roleBtnActive]} 
+              style={[styles.roleBtn, role === 'professor' && styles.roleBtnActive, role !== 'professor' && isDarkMode && { backgroundColor: 'transparent' }]} 
               onPress={() => setRole('professor')}
             >
-              <Text style={[styles.roleBtnText, role === 'professor' && styles.roleBtnTextActive]}>Professor</Text>
+              <Text style={[styles.roleBtnText, role === 'professor' && styles.roleBtnTextActive, role !== 'professor' && { color: colors.subText }]}>Professor</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.inputLabel}>Full Name</Text>
+          <Text style={[styles.inputLabel, { color: colors.text }]}>Full Name</Text>
           <TextInput
-            style={styles.textInput}
+            style={[styles.textInput, { backgroundColor: isDarkMode ? '#111827' : '#ffffff', color: colors.text, borderColor: colors.border }]}
             placeholder="e.g. Dr. Jane Smith"
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={colors.subText}
             value={name}
             onChangeText={setName}
           />
 
-          <Text style={styles.inputLabel}>{role === 'student' ? 'Student ID Number' : 'Professor Username / ID'}</Text>
+          <Text style={[styles.inputLabel, { color: colors.text }]}>{role === 'student' ? 'Student ID Number' : 'Professor Username / ID'}</Text>
           <TextInput
-            style={styles.textInput}
+            style={[styles.textInput, { backgroundColor: isDarkMode ? '#111827' : '#ffffff', color: colors.text, borderColor: colors.border }]}
             placeholder={role === 'student' ? "e.g. 2024-0518" : "e.g. prof1"}
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={colors.subText}
             autoCapitalize="none"
             value={usernameId}
             onChangeText={setUsernameId}
           />
 
-          <Text style={styles.inputLabel}>University Email Address</Text>
+          <Text style={[styles.inputLabel, { color: colors.text }]}>University Email Address</Text>
           <TextInput
-            style={styles.textInput}
+            style={[styles.textInput, { backgroundColor: isDarkMode ? '#111827' : '#ffffff', color: colors.text, borderColor: colors.border }]}
             placeholder="e.g. name@university.edu"
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={colors.subText}
             keyboardType="email-address"
             autoCapitalize="none"
             value={email}
             onChangeText={setEmail}
           />
 
-          <Text style={styles.inputLabel}>Password</Text>
+          <Text style={[styles.inputLabel, { color: colors.text }]}>Password</Text>
           <TextInput
-            style={styles.textInput}
+            style={[styles.textInput, { backgroundColor: isDarkMode ? '#111827' : '#ffffff', color: colors.text, borderColor: colors.border }]}
             placeholder="••••••••"
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={colors.subText}
             secureTextEntry={true}
             autoCapitalize="none"
             value={password}
@@ -456,7 +443,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.switchModeLink} onPress={() => { setAuthMode('login'); setPassword(''); setUsernameId(''); }}>
-            <Text style={styles.switchModeText}>Already have an account? <Text style={styles.switchModeAccent}>Sign In</Text></Text>
+            <Text style={[styles.switchModeText, { color: colors.subText }]}>Already have an account? <Text style={styles.switchModeAccent}>Sign In</Text></Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -465,18 +452,18 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
 
   if (role === 'student' && signupStep === 2) {
     return (
-      <ScrollView style={styles.scrollStyle} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <View style={styles.backgroundSweep} />
-        <View style={styles.rightCircleBackground} />
+      <ScrollView style={[styles.scrollStyle, { backgroundColor: colors.bg }]} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <View style={[styles.backgroundSweep, isDarkMode && { backgroundColor: '#1e3a8a15', borderTopLeftRadius: 0 }]} />
+        <View style={[styles.rightCircleBackground, isDarkMode && { backgroundColor: '#1e3a8a10' }]} />
         <DotGrid />
         <View style={styles.brandingHeader}>
           <Image source={require('../../assets/logo.png')} style={styles.brandingLogoImage} resizeMode="contain" />
-          <Text style={styles.brandingSubText}>Complete Student Profile</Text>
+          <Text style={[styles.brandingSubText, { color: colors.subText }]}>Complete Student Profile</Text>
         </View>
 
-        <View style={styles.authCard}>
+        <View style={[styles.authCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
           <View style={styles.stepHeaderRow}>
-            <Text style={styles.cardHeading}>Student Profile Setup</Text>
+            <Text style={[styles.cardHeading, { color: colors.text }]}>Student Profile Setup</Text>
             <Text style={styles.stepIndicatorLabel}>Step 2 of 2</Text>
           </View>
           <Text style={styles.infoLockNotice}>⚠️ Note: Once registration is complete, student profile details and home addresses are strictly locked and cannot be edited.</Text>
@@ -484,21 +471,21 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
           <View style={styles.formSplitRow}>
             {/* Year Group Selection */}
             <View style={{ flex: 1 }}>
-              <Text style={styles.inputLabel}>Year Level</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Year Level</Text>
               <TouchableOpacity
-                style={[styles.dropdownTrigger, isYearDropdownOpen && styles.dropdownTriggerActive]}
+                style={[styles.dropdownTrigger, { backgroundColor: isDarkMode ? '#111827' : '#ffffff', borderColor: colors.border }, isYearDropdownOpen && styles.dropdownTriggerActive]}
                 onPress={() => {
                   setIsYearDropdownOpen(!isYearDropdownOpen);
                   setIsSectionDropdownOpen(false);
                 }}
                 activeOpacity={0.8}
               >
-                <Text style={styles.dropdownTriggerText}>{yearGroup || 'Select Year...'}</Text>
-                <Text style={styles.dropdownChevron}>{isYearDropdownOpen ? '▲' : '▼'}</Text>
+                <Text style={[styles.dropdownTriggerText, { color: colors.text }]}>{yearGroup || 'Select Year...'}</Text>
+                <Text style={[styles.dropdownChevron, { color: colors.subText }]}>{isYearDropdownOpen ? '▲' : '▼'}</Text>
               </TouchableOpacity>
 
               {isYearDropdownOpen && (
-                <View style={styles.dropdownListInline}>
+                <View style={[styles.dropdownListInline, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
                   {YEAR_LEVELS.map((y) => (
                     <TouchableOpacity
                       key={y}
@@ -508,7 +495,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
                         setIsYearDropdownOpen(false);
                       }}
                     >
-                      <Text style={[styles.dropdownItemTextInline, yearGroup === y && styles.dropdownTextActiveInline]}>{y}</Text>
+                      <Text style={[styles.dropdownItemTextInline, { color: colors.text }, yearGroup === y && styles.dropdownTextActiveInline]}>{y}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -517,21 +504,21 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
 
             {/* Section Selection */}
             <View style={{ flex: 1 }}>
-              <Text style={styles.inputLabel}>Section</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Section</Text>
               <TouchableOpacity
-                style={[styles.dropdownTrigger, isSectionDropdownOpen && styles.dropdownTriggerActive]}
+                style={[styles.dropdownTrigger, { backgroundColor: isDarkMode ? '#111827' : '#ffffff', borderColor: colors.border }, isSectionDropdownOpen && styles.dropdownTriggerActive]}
                 onPress={() => {
                   setIsSectionDropdownOpen(!isSectionDropdownOpen);
                   setIsYearDropdownOpen(false);
                 }}
                 activeOpacity={0.8}
               >
-                <Text style={styles.dropdownTriggerText}>{section || 'Select Sec...'}</Text>
-                <Text style={styles.dropdownChevron}>{isSectionDropdownOpen ? '▲' : '▼'}</Text>
+                <Text style={[styles.dropdownTriggerText, { color: colors.text }]}>{section || 'Select Sec...'}</Text>
+                <Text style={[styles.dropdownChevron, { color: colors.subText }]}>{isSectionDropdownOpen ? '▲' : '▼'}</Text>
               </TouchableOpacity>
 
               {isSectionDropdownOpen && (
-                <View style={[styles.dropdownListInline, { maxHeight: 150 }]}>
+                <View style={[styles.dropdownListInline, { maxHeight: 150, backgroundColor: colors.cardBg, borderColor: colors.border }]}>
                   <ScrollView nestedScrollEnabled={true} showsVerticalScrollIndicator={true}>
                     {SECTIONS.map((s) => (
                       <TouchableOpacity
@@ -542,7 +529,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
                           setIsSectionDropdownOpen(false);
                         }}
                       >
-                        <Text style={[styles.dropdownItemTextInline, section === s && styles.dropdownTextActiveInline]}>{s}</Text>
+                        <Text style={[styles.dropdownItemTextInline, { color: colors.text }, section === s && styles.dropdownTextActiveInline]}>{s}</Text>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
@@ -552,22 +539,22 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
           </View>
 
           {/* Primary Home Address search */}
-          <Text style={styles.inputLabel}>Primary Home Address</Text>
+          <Text style={[styles.inputLabel, { color: colors.text }]}>Primary Home Address</Text>
           <View style={styles.googleSearchContainer}>
             <TextInput
-              style={[styles.textInput, { marginBottom: 0 }]}
+              style={[styles.textInput, { marginBottom: 0, backgroundColor: isDarkMode ? '#111827' : '#ffffff', color: colors.text, borderColor: colors.border }]}
               placeholder="Search Taft Avenue, UST, Katipunan..."
-              placeholderTextColor="#6B7280"
+              placeholderTextColor={colors.subText}
               value={homeAddress}
               onChangeText={handleHomeAddressChange}
             />
             {homeSuggestions.length > 0 && (
-              <View style={styles.suggestionsBox}>
+              <View style={[styles.suggestionsBox, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
                 <Text style={styles.googlePoweredLabel}>Google Maps Autocomplete Predictions</Text>
                 {homeSuggestions.map((item, index) => (
                   <TouchableOpacity
                     key={index}
-                    style={styles.suggestionItem}
+                    style={[styles.suggestionItem, { borderBottomColor: colors.border }]}
                     onPress={() => {
                       setHomeAddress(item.description);
                       setHomeLat(item.lat);
@@ -577,8 +564,8 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
                   >
                     <Text style={styles.pinIcon}>📍</Text>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.suggestionText}>{item.description}</Text>
-                      <Text style={styles.coordsSub}>Coordinates: {item.lat.toFixed(5)}, {item.lng.toFixed(5)}</Text>
+                      <Text style={[styles.suggestionText, { color: colors.text }]}>{item.description}</Text>
+                      <Text style={[styles.coordsSub, { color: colors.subText }]}>Coordinates: {item.lat.toFixed(5)}, {item.lng.toFixed(5)}</Text>
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -587,15 +574,15 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
           </View>
 
           {/* Living in boarding house / apartment toggle */}
-          <View style={styles.toggleRow}>
+          <View style={[styles.toggleRow, { borderBottomColor: colors.border }]}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.toggleLabel}>Living in a Boarding House / Apartment?</Text>
-              <Text style={styles.toggleSubText}>Enable to register a second address for proximity calculations</Text>
+              <Text style={[styles.toggleLabel, { color: colors.text }]}>Living in a Boarding House / Apartment?</Text>
+              <Text style={[styles.toggleSubText, { color: colors.subText }]}>Enable to register a second address for proximity calculations</Text>
             </View>
             <Switch
               value={hasSecondAddress}
               onValueChange={setHasSecondAddress}
-              trackColor={{ false: '#e5e7eb', true: '#1E5EFF' }}
+              trackColor={{ false: isDarkMode ? '#374151' : '#e5e7eb', true: '#1E5EFF' }}
               thumbColor="#ffffff"
               style={Platform.OS === 'web' ? { transform: [{ scale: 0.8 }] } as any : {}}
             />
@@ -604,22 +591,22 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
           {/* Second Address search (Boarding house / Apartment) */}
           {hasSecondAddress && (
             <>
-              <Text style={styles.inputLabel}>Secondary Address (Boarding/Apartment)</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Secondary Address (Boarding/Apartment)</Text>
               <View style={styles.googleSearchContainer}>
                 <TextInput
-                  style={[styles.textInput, { marginBottom: 0 }]}
+                  style={[styles.textInput, { marginBottom: 0, backgroundColor: isDarkMode ? '#111827' : '#ffffff', color: colors.text, borderColor: colors.border }]}
                   placeholder="Search apartment or boarding coordinates..."
-                  placeholderTextColor="#6B7280"
+                  placeholderTextColor={colors.subText}
                   value={secondAddress}
                   onChangeText={handleSecondAddressChange}
                 />
                 {secondSuggestions.length > 0 && (
-                  <View style={styles.suggestionsBox}>
+                  <View style={[styles.suggestionsBox, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
                     <Text style={styles.googlePoweredLabel}>Google Maps Autocomplete Predictions</Text>
                     {secondSuggestions.map((item, index) => (
                       <TouchableOpacity
                         key={index}
-                        style={styles.suggestionItem}
+                        style={[styles.suggestionItem, { borderBottomColor: colors.border }]}
                         onPress={() => {
                           setSecondAddress(item.description);
                           setSecondLat(item.lat);
@@ -629,8 +616,8 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
                       >
                         <Text style={styles.pinIcon}>🏠</Text>
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.suggestionText}>{item.description}</Text>
-                          <Text style={styles.coordsSub}>Coordinates: {item.lat.toFixed(5)}, {item.lng.toFixed(5)}</Text>
+                          <Text style={[styles.suggestionText, { color: colors.text }]}>{item.description}</Text>
+                          <Text style={[styles.coordsSub, { color: colors.subText }]}>Coordinates: {item.lat.toFixed(5)}, {item.lng.toFixed(5)}</Text>
                         </View>
                       </TouchableOpacity>
                     ))}
@@ -641,15 +628,15 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
           )}
 
           {/* Irregular student status */}
-          <View style={styles.toggleRow}>
+          <View style={[styles.toggleRow, { borderBottomColor: colors.border }]}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.toggleLabel}>Irregular Student Status</Text>
-              <Text style={styles.toggleSubText}>Enable if taking courses outside curriculum year</Text>
+              <Text style={[styles.toggleLabel, { color: colors.text }]}>Irregular Student Status</Text>
+              <Text style={[styles.toggleSubText, { color: colors.subText }]}>Enable if taking courses outside curriculum year</Text>
             </View>
             <Switch
               value={isIrregular}
               onValueChange={setIsIrregular}
-              trackColor={{ false: '#e5e7eb', true: '#F59E0B' }}
+              trackColor={{ false: isDarkMode ? '#374151' : '#e5e7eb', true: '#F59E0B' }}
               thumbColor="#ffffff"
               style={Platform.OS === 'web' ? { transform: [{ scale: 0.8 }] } as any : {}}
             />
@@ -676,42 +663,42 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
 
   // Render Signup Step 2: Professor Class Workload config (Course and Department)
   return (
-    <ScrollView style={styles.scrollStyle} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-      <View style={styles.backgroundSweep} />
-      <View style={styles.rightCircleBackground} />
+    <ScrollView style={[styles.scrollStyle, { backgroundColor: colors.bg }]} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <View style={[styles.backgroundSweep, isDarkMode && { backgroundColor: '#1e3a8a15', borderTopLeftRadius: 0 }]} />
+      <View style={[styles.rightCircleBackground, isDarkMode && { backgroundColor: '#1e3a8a10' }]} />
       <DotGrid />
       <View style={styles.brandingHeader}>
         <Image source={require('../../assets/logo.png')} style={styles.brandingLogoImage} resizeMode="contain" />
-        <Text style={styles.brandingSubText}>Semester Workload Setup</Text>
+        <Text style={[styles.brandingSubText, { color: colors.subText }]}>Semester Workload Setup</Text>
       </View>
 
-      <View style={styles.authCard}>
+      <View style={[styles.authCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
         <View style={styles.stepHeaderRow}>
-          <Text style={styles.cardHeading}>Professor Workload Config</Text>
+          <Text style={[styles.cardHeading, { color: colors.text }]}>Professor Workload Config</Text>
           <Text style={styles.stepIndicatorLabel}>Step 2 of 2</Text>
         </View>
         
-        <View style={styles.infoLockNotice}>
-          <Text style={styles.noticeTextBold}>ℹ️ Workload Signup Notice:</Text>
-          <Text style={styles.noticeText}>
+        <View style={[styles.infoLockNotice, isDarkMode && { backgroundColor: '#1e3a8a20', borderColor: '#1e3a8a40' }]}>
+          <Text style={[styles.noticeTextBold, { color: colors.text }]}>ℹ️ Workload Signup Notice:</Text>
+          <Text style={[styles.noticeText, { color: colors.text }]}>
             You are only required to configure at least **1 subject** for now to complete your signup process. 
             Any other semester courses can be easily added, edited, or rescheduled later in the **"Classes"** tab once you log in, so you can finish registration quickly.
           </Text>
         </View>
 
         {/* Existing Added Subjects List */}
-        <Text style={styles.sectionHeader}>Added Subjects Workload ({profSubjects.length})</Text>
+        <Text style={[styles.sectionHeader, { color: colors.text }]}>Added Subjects Workload ({profSubjects.length})</Text>
         {profSubjects.length === 0 ? (
-          <Text style={styles.emptySubjectsLabel}>No subjects added yet. Configure at least 1 subject below.</Text>
+          <Text style={[styles.emptySubjectsLabel, { color: colors.subText }]}>No subjects added yet. Configure at least 1 subject below.</Text>
         ) : (
           <View style={styles.subjectsAddedList}>
             {profSubjects.map(sub => (
-              <View key={sub.id} style={styles.subjectWorkloadCard}>
+              <View key={sub.id} style={[styles.subjectWorkloadCard, { backgroundColor: isDarkMode ? '#11182740' : '#ffffff', borderColor: colors.border }]}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.subWorkloadCode}>{sub.code}</Text>
-                  <Text style={styles.subWorkloadName}>{sub.name}</Text>
-                  <Text style={styles.subWorkloadMeta}>{sub.department}  •  {sub.course}  •  {sub.year} ({sub.section})</Text>
-                  <Text style={styles.subWorkloadMeta}>🕒 {sub.scheduleTime}</Text>
+                  <Text style={[styles.subWorkloadName, { color: colors.text }]}>{sub.name}</Text>
+                  <Text style={[styles.subWorkloadMeta, { color: colors.subText }]}>{sub.department}  •  {formatAcademicSection(sub.code, sub.year, sub.section)}</Text>
+                  <Text style={[styles.subWorkloadMeta, { color: colors.subText }]}>🕒 {sub.scheduleTime}</Text>
                 </View>
                 <TouchableOpacity style={styles.subWorkloadRemoveBtn} onPress={() => handleRemoveSubjectFromProfList(sub.id)}>
                   <Text style={styles.removeText}>✕</Text>
@@ -722,31 +709,31 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
         )}
 
         {/* Subject builder form details (Includes Course and Department Dropdowns) */}
-        <View style={styles.subjectBuilderContainer}>
-          <Text style={styles.builderTitle}>➕ Configure New Subject</Text>
+        <View style={[styles.subjectBuilderContainer, { backgroundColor: isDarkMode ? '#11182740' : '#f4f5f6', borderColor: colors.border }]}>
+          <Text style={[styles.builderTitle, { color: colors.text }]}>➕ Configure New Subject</Text>
           
-          <Text style={styles.inputLabel}>Subject Name / Code</Text>
+          <Text style={[styles.inputLabel, { color: colors.text }]}>Subject Name / Code</Text>
           <TextInput
-            style={styles.textInput}
+            style={[styles.textInput, { backgroundColor: isDarkMode ? '#111827' : '#ffffff', color: colors.text, borderColor: colors.border }]}
             placeholder="e.g. IT 204 (Mobile Application Development)"
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={colors.subText}
             value={newSubName}
             onChangeText={setNewSubName}
           />
 
-          <Text style={styles.inputLabel}>Subject Code Identifier (Abbreviation)</Text>
+          <Text style={[styles.inputLabel, { color: colors.text }]}>Subject Code Identifier (Abbreviation)</Text>
           <TextInput
-            style={styles.textInput}
+            style={[styles.textInput, { backgroundColor: isDarkMode ? '#111827' : '#ffffff', color: colors.text, borderColor: colors.border }]}
             placeholder="e.g. IT 204"
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={colors.subText}
             value={newSubCode}
             onChangeText={setNewSubCode}
           />
 
           {/* Department Dropdown */}
-          <Text style={styles.inputLabel}>Department</Text>
+          <Text style={[styles.inputLabel, { color: colors.text }]}>Department</Text>
           <TouchableOpacity
-            style={[styles.dropdownTrigger, isSubDeptDropdownOpen && styles.dropdownTriggerActive]}
+            style={[styles.dropdownTrigger, { backgroundColor: isDarkMode ? '#111827' : '#ffffff', borderColor: colors.border }, isSubDeptDropdownOpen && styles.dropdownTriggerActive]}
             onPress={() => {
               setIsSubDeptDropdownOpen(!isSubDeptDropdownOpen);
               setIsSubCourseDropdownOpen(false);
@@ -757,12 +744,12 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
             }}
             activeOpacity={0.8}
           >
-            <Text style={styles.dropdownTriggerText}>{newSubDepartment || 'Select Department...'}</Text>
-            <Text style={styles.dropdownChevron}>{isSubDeptDropdownOpen ? '▲' : '▼'}</Text>
+            <Text style={[styles.dropdownTriggerText, { color: colors.text }]}>{newSubDepartment || 'Select Department...'}</Text>
+            <Text style={[styles.dropdownChevron, { color: colors.subText }]}>{isSubDeptDropdownOpen ? '▲' : '▼'}</Text>
           </TouchableOpacity>
 
           {isSubDeptDropdownOpen && (
-            <View style={styles.dropdownListInline}>
+            <View style={[styles.dropdownListInline, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
               {DEPARTMENTS.map((dept) => (
                 <TouchableOpacity
                   key={dept}
@@ -772,16 +759,16 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
                     setIsSubDeptDropdownOpen(false);
                   }}
                 >
-                  <Text style={[styles.dropdownItemTextInline, newSubDepartment === dept && styles.dropdownTextActiveInline]}>{dept}</Text>
+                  <Text style={[styles.dropdownItemTextInline, { color: colors.text }, newSubDepartment === dept && styles.dropdownTextActiveInline]}>{dept}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           )}
 
           {/* Course Dropdown */}
-          <Text style={styles.inputLabel}>Course (Program Handle)</Text>
+          <Text style={[styles.inputLabel, { color: colors.text }]}>Course (Program Handle)</Text>
           <TouchableOpacity
-            style={[styles.dropdownTrigger, isSubCourseDropdownOpen && styles.dropdownTriggerActive]}
+            style={[styles.dropdownTrigger, { backgroundColor: isDarkMode ? '#111827' : '#ffffff', borderColor: colors.border }, isSubCourseDropdownOpen && styles.dropdownTriggerActive]}
             onPress={() => {
               setIsSubCourseDropdownOpen(!isSubCourseDropdownOpen);
               setIsSubDeptDropdownOpen(false);
@@ -792,12 +779,12 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
             }}
             activeOpacity={0.8}
           >
-            <Text style={styles.dropdownTriggerText}>{newSubCourse || 'Select Course / Program...'}</Text>
-            <Text style={styles.dropdownChevron}>{isSubCourseDropdownOpen ? '▲' : '▼'}</Text>
+            <Text style={[styles.dropdownTriggerText, { color: colors.text }]}>{newSubCourse || 'Select Course / Program...'}</Text>
+            <Text style={[styles.dropdownChevron, { color: colors.subText }]}>{isSubCourseDropdownOpen ? '▲' : '▼'}</Text>
           </TouchableOpacity>
 
           {isSubCourseDropdownOpen && (
-            <View style={styles.dropdownListInline}>
+            <View style={[styles.dropdownListInline, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
               {COURSES.map((crs) => (
                 <TouchableOpacity
                   key={crs}
@@ -807,7 +794,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
                     setIsSubCourseDropdownOpen(false);
                   }}
                 >
-                  <Text style={[styles.dropdownItemTextInline, newSubCourse === crs && styles.dropdownTextActiveInline]}>{crs}</Text>
+                  <Text style={[styles.dropdownItemTextInline, { color: colors.text }, newSubCourse === crs && styles.dropdownTextActiveInline]}>{crs}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -816,9 +803,9 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
           <View style={styles.formSplitRow}>
             {/* Subject Year Dropdown */}
             <View style={{ flex: 1 }}>
-              <Text style={styles.inputLabel}>Year Level Group</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Year Level Group</Text>
               <TouchableOpacity
-                style={[styles.dropdownTrigger, isSubYearDropdownOpen && styles.dropdownTriggerActive]}
+                style={[styles.dropdownTrigger, { backgroundColor: isDarkMode ? '#111827' : '#ffffff', borderColor: colors.border }, isSubYearDropdownOpen && styles.dropdownTriggerActive]}
                 onPress={() => {
                   setIsSubYearDropdownOpen(!isSubYearDropdownOpen);
                   setIsSubSecDropdownOpen(false);
@@ -829,12 +816,12 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
                 }}
                 activeOpacity={0.8}
               >
-                <Text style={styles.dropdownTriggerText}>{newSubYear || 'Select Year...'}</Text>
-                <Text style={styles.dropdownChevron}>{isSubYearDropdownOpen ? '▲' : '▼'}</Text>
+                <Text style={[styles.dropdownTriggerText, { color: colors.text }]}>{newSubYear || 'Select Year...'}</Text>
+                <Text style={[styles.dropdownChevron, { color: colors.subText }]}>{isSubYearDropdownOpen ? '▲' : '▼'}</Text>
               </TouchableOpacity>
 
               {isSubYearDropdownOpen && (
-                <View style={styles.dropdownListInline}>
+                <View style={[styles.dropdownListInline, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
                   {YEAR_LEVELS.map((y) => (
                     <TouchableOpacity
                       key={y}
@@ -844,7 +831,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
                         setIsSubYearDropdownOpen(false);
                       }}
                     >
-                      <Text style={[styles.dropdownItemTextInline, newSubYear === y && styles.dropdownTextActiveInline]}>{y}</Text>
+                      <Text style={[styles.dropdownItemTextInline, { color: colors.text }, newSubYear === y && styles.dropdownTextActiveInline]}>{y}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -853,9 +840,9 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
 
             {/* Subject Section Dropdown */}
             <View style={{ flex: 1 }}>
-              <Text style={styles.inputLabel}>Section</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Section</Text>
               <TouchableOpacity
-                style={[styles.dropdownTrigger, isSubSecDropdownOpen && styles.dropdownTriggerActive]}
+                style={[styles.dropdownTrigger, { backgroundColor: isDarkMode ? '#111827' : '#ffffff', borderColor: colors.border }, isSubSecDropdownOpen && styles.dropdownTriggerActive]}
                 onPress={() => {
                   setIsSubSecDropdownOpen(!isSubSecDropdownOpen);
                   setIsSubYearDropdownOpen(false);
@@ -866,12 +853,12 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
                 }}
                 activeOpacity={0.8}
               >
-                <Text style={styles.dropdownTriggerText}>{newSubSection || 'Select Sec...'}</Text>
-                <Text style={styles.dropdownChevron}>{isSubSecDropdownOpen ? '▲' : '▼'}</Text>
+                <Text style={[styles.dropdownTriggerText, { color: colors.text }]}>{newSubSection || 'Select Sec...'}</Text>
+                <Text style={[styles.dropdownChevron, { color: colors.subText }]}>{isSubSecDropdownOpen ? '▲' : '▼'}</Text>
               </TouchableOpacity>
 
               {isSubSecDropdownOpen && (
-                <View style={[styles.dropdownListInline, { maxHeight: 150 }]}>
+                <View style={[styles.dropdownListInline, { maxHeight: 150, backgroundColor: colors.cardBg, borderColor: colors.border }]}>
                   <ScrollView nestedScrollEnabled={true} showsVerticalScrollIndicator={true}>
                     {SECTIONS.map((s) => (
                       <TouchableOpacity
@@ -882,7 +869,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
                           setIsSubSecDropdownOpen(false);
                         }}
                       >
-                        <Text style={[styles.dropdownItemTextInline, newSubSection === s && styles.dropdownTextActiveInline]}>{s}</Text>
+                        <Text style={[styles.dropdownItemTextInline, { color: colors.text }, newSubSection === s && styles.dropdownTextActiveInline]}>{s}</Text>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
@@ -892,13 +879,13 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
           </View>
 
           {/* Time pickers builders */}
-          <Text style={styles.inputLabel}>Weekly Schedule Time Range</Text>
+          <Text style={[styles.inputLabel, { color: colors.text }]}>Weekly Schedule Time Range</Text>
           <View style={styles.formSplitRow}>
             {/* Start time dropdown */}
             <View style={{ flex: 1 }}>
-              <Text style={styles.timeSubLabel}>Start Time</Text>
+              <Text style={[styles.timeSubLabel, { color: colors.subText }]}>Start Time</Text>
               <TouchableOpacity
-                style={[styles.dropdownTrigger, isStartDropdownOpen && styles.dropdownTriggerActive]}
+                style={[styles.dropdownTrigger, { backgroundColor: isDarkMode ? '#111827' : '#ffffff', borderColor: colors.border }, isStartDropdownOpen && styles.dropdownTriggerActive]}
                 onPress={() => {
                   setIsStartDropdownOpen(!isStartDropdownOpen);
                   setIsEndDropdownOpen(false);
@@ -909,12 +896,12 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
                 }}
                 activeOpacity={0.8}
               >
-                <Text style={styles.dropdownTriggerText}>{newSubStartTime}</Text>
-                <Text style={styles.dropdownChevron}>{isStartDropdownOpen ? '▲' : '▼'}</Text>
+                <Text style={[styles.dropdownTriggerText, { color: colors.text }]}>{newSubStartTime}</Text>
+                <Text style={[styles.dropdownChevron, { color: colors.subText }]}>{isStartDropdownOpen ? '▲' : '▼'}</Text>
               </TouchableOpacity>
 
               {isStartDropdownOpen && (
-                <View style={[styles.dropdownListInline, { maxHeight: 150 }]}>
+                <View style={[styles.dropdownListInline, { maxHeight: 150, backgroundColor: colors.cardBg, borderColor: colors.border }]}>
                   <ScrollView nestedScrollEnabled={true} showsVerticalScrollIndicator={true}>
                     {TIME_OPTIONS.map((t) => (
                       <TouchableOpacity
@@ -925,7 +912,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
                           setIsStartDropdownOpen(false);
                         }}
                       >
-                        <Text style={[styles.dropdownItemTextInline, newSubStartTime === t && styles.dropdownTextActiveInline]}>{t}</Text>
+                        <Text style={[styles.dropdownItemTextInline, { color: colors.text }, newSubStartTime === t && styles.dropdownTextActiveInline]}>{t}</Text>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
@@ -935,9 +922,9 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
 
             {/* End time dropdown */}
             <View style={{ flex: 1 }}>
-              <Text style={styles.timeSubLabel}>End Time</Text>
+              <Text style={[styles.timeSubLabel, { color: colors.subText }]}>End Time</Text>
               <TouchableOpacity
-                style={[styles.dropdownTrigger, isEndDropdownOpen && styles.dropdownTriggerActive]}
+                style={[styles.dropdownTrigger, { backgroundColor: isDarkMode ? '#111827' : '#ffffff', borderColor: colors.border }, isEndDropdownOpen && styles.dropdownTriggerActive]}
                 onPress={() => {
                   setIsEndDropdownOpen(!isEndDropdownOpen);
                   setIsStartDropdownOpen(false);
@@ -948,12 +935,12 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
                 }}
                 activeOpacity={0.8}
               >
-                <Text style={styles.dropdownTriggerText}>{newSubEndTime}</Text>
-                <Text style={styles.dropdownChevron}>{isEndDropdownOpen ? '▲' : '▼'}</Text>
+                <Text style={[styles.dropdownTriggerText, { color: colors.text }]}>{newSubEndTime}</Text>
+                <Text style={[styles.dropdownChevron, { color: colors.subText }]}>{isEndDropdownOpen ? '▲' : '▼'}</Text>
               </TouchableOpacity>
 
               {isEndDropdownOpen && (
-                <View style={[styles.dropdownListInline, { maxHeight: 150 }]}>
+                <View style={[styles.dropdownListInline, { maxHeight: 150, backgroundColor: colors.cardBg, borderColor: colors.border }]}>
                   <ScrollView nestedScrollEnabled={true} showsVerticalScrollIndicator={true}>
                     {TIME_OPTIONS.map((t) => (
                       <TouchableOpacity
@@ -964,7 +951,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
                           setIsEndDropdownOpen(false);
                         }}
                       >
-                        <Text style={[styles.dropdownItemTextInline, newSubEndTime === t && styles.dropdownTextActiveInline]}>{t}</Text>
+                        <Text style={[styles.dropdownItemTextInline, { color: colors.text }, newSubEndTime === t && styles.dropdownTextActiveInline]}>{t}</Text>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
@@ -973,7 +960,7 @@ export default function AuthScreen({ onLoginSuccess }: Props) {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.builderAddBtn} onPress={handleAddSubjectToProfList}>
+          <TouchableOpacity style={[styles.builderAddBtn, isDarkMode && { backgroundColor: '#1E5EFF20', borderColor: '#1E5EFF' }]} onPress={handleAddSubjectToProfList}>
             <Text style={styles.builderAddBtnText}>+ Add Subject to Semester List</Text>
           </TouchableOpacity>
         </View>

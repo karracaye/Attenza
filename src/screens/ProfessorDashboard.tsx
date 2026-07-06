@@ -13,6 +13,7 @@ import {
   TextInput,
 } from 'react-native';
 import { Subject, Classroom, StudentCheckInRecord, ActiveSession, getRollingTokenForTime } from '../data/mockData';
+import { formatAcademicSection } from './HistoryScreen';
 
 interface Props {
   subjects: Subject[];
@@ -29,6 +30,7 @@ interface Props {
   onEndSession: (records: StudentCheckInRecord[]) => void;
   liveRecords: StudentCheckInRecord[];
   onRegisterClassroom?: (newRoom: Classroom) => void;
+  isDarkMode?: boolean;
 }
 
 export default function ProfessorDashboard({
@@ -39,7 +41,15 @@ export default function ProfessorDashboard({
   onEndSession,
   liveRecords,
   onRegisterClassroom,
+  isDarkMode = false,
 }: Props) {
+  const colors = {
+    bg: isDarkMode ? '#111827' : '#FAFBFC',
+    text: isDarkMode ? '#F9FAFB' : '#111827',
+    subText: isDarkMode ? '#9CA3AF' : '#6B7280',
+    cardBg: isDarkMode ? '#1F2937' : '#ffffff',
+    border: isDarkMode ? '#374151' : '#E5E7EB',
+  };
   const [selectedSubjectId, setSelectedSubjectId] = useState(subjects[0]?.id || '');
   const [selectedClassroomId, setSelectedClassroomId] = useState(classrooms[0]?.id || '');
   const [sessionDuration, setSessionDuration] = useState(600); // Default 10 mins (600s)
@@ -186,18 +196,18 @@ export default function ProfessorDashboard({
   // RENDER ACTIVE ATTENDANCE SCREEN
   if (activeSession) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.bg }]}>
         <View style={styles.activeHeader}>
           <View style={{ flex: 1 }}>
             <View style={styles.titleRow}>
-              <Text style={styles.activeCode}>{activeSession.subjectName}</Text>
+              <Text style={[styles.activeCode, { color: colors.text }]}>{activeSession.subjectName}</Text>
               <View style={[styles.deliveryPill, activeSession.isOnline ? styles.pillOrange : styles.pillBlue]}>
                 <Text style={[styles.deliveryPillText, activeSession.isOnline ? styles.textOrange : styles.textBlue]}>
                   {activeSession.isOnline ? '🌐 ONLINE' : '🏫 F2F'}
                 </Text>
               </View>
             </View>
-            <Text style={styles.activeRoom}>
+            <Text style={[styles.activeRoom, { color: colors.subText }]}>
               {activeSession.isOnline ? '🌐 Virtual Remote Class (No GPS limit)' : `📍 ${activeSession.classroomName}`}
             </Text>
           </View>
@@ -208,11 +218,11 @@ export default function ProfessorDashboard({
 
         <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
           {/* Professor Dynamic QR code */}
-          <View style={styles.qrContainerCard}>
-            <Text style={styles.qrCardTitle}>Layer 1: Scanning QR Code</Text>
-            <Text style={styles.qrCardSub}>Refreshes dynamically to prevent photo sharing and remote scans.</Text>
+          <View style={[styles.qrContainerCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+            <Text style={[styles.qrCardTitle, { color: colors.text }]}>Layer 1: Scanning QR Code</Text>
+            <Text style={[styles.qrCardSub, { color: colors.subText }]}>Refreshes dynamically to prevent photo sharing and remote scans.</Text>
             
-            <View style={styles.qrMockCodeOutline}>
+            <View style={[styles.qrMockCodeOutline, isDarkMode && { borderColor: '#374151', backgroundColor: '#11182740' }]}>
               <View style={styles.qrGridSquare}>
                 <View style={[styles.qrCornerBox, { top: 12, left: 12 }]} />
                 <View style={[styles.qrCornerBox, { top: 12, right: 12 }]} />
@@ -221,16 +231,16 @@ export default function ProfessorDashboard({
               </View>
             </View>
 
-            <View style={styles.tokenContainer}>
-              <Text style={styles.tokenLabel}>Secure Rolling Token:</Text>
-              <Text style={styles.tokenValue}>{rollingToken}</Text>
+            <View style={[styles.tokenContainer, { backgroundColor: isDarkMode ? '#11182740' : '#FAFBFC', borderColor: colors.border }]}>
+              <Text style={[styles.tokenLabel, { color: colors.subText }]}>Secure Rolling Token:</Text>
+              <Text style={[styles.tokenValue, { color: colors.text }]}>{rollingToken}</Text>
             </View>
           </View>
 
           {/* Live Check-in Roster Tracker */}
-          <View style={styles.rosterCard}>
+          <View style={[styles.rosterCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
             <View style={styles.rosterHeader}>
-              <Text style={styles.rosterTitle}>Verified Student Roster</Text>
+              <Text style={[styles.rosterTitle, { color: colors.text }]}>Verified Student Roster</Text>
               <View style={styles.countBadge}>
                 <Text style={styles.countText}>
                   {liveRecords.filter(r => r.status === 'PRESENT').length} On-Time • {liveRecords.filter(r => r.status === 'LATE').length} Late • {liveRecords.filter(r => r.status === 'EXCUSED').length} Excused
@@ -240,8 +250,8 @@ export default function ProfessorDashboard({
 
             {liveRecords.length === 0 ? (
               <View style={styles.emptyRosterBlock}>
-                <Text style={styles.emptyRosterText}>Waiting for check-ins...</Text>
-                <Text style={styles.emptyRosterSub}>Ask students to scan the QR code and verify themselves.</Text>
+                <Text style={[styles.emptyRosterText, { color: colors.text }]}>Waiting for check-ins...</Text>
+                <Text style={[styles.emptyRosterSub, { color: colors.subText }]}>Ask students to scan the QR code and verify themselves.</Text>
               </View>
             ) : (
               paginatedRecords.map((record) => {
@@ -255,17 +265,17 @@ export default function ProfessorDashboard({
                   .toUpperCase();
                 
                 return (
-                  <View key={record.studentId} style={styles.studentRosterCard}>
+                  <View key={record.studentId} style={[styles.studentRosterCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
                     <View style={styles.rosterCardMain}>
                       <View style={styles.studentAvatarContainer}>
                         {isExcused ? (
-                          <View style={[styles.avatarCircle, { backgroundColor: '#EAF2FF', borderColor: '#1E5EFF30', borderWidth: 1 }]}>
+                          <View style={[styles.avatarCircle, { backgroundColor: isDarkMode ? '#1E5EFF20' : '#EAF2FF', borderColor: '#1E5EFF30', borderWidth: 1 }]}>
                             <Text style={styles.avatarInitialsExcused}>✉️</Text>
                           </View>
                         ) : (
                           <View style={[
                             styles.avatarCircle, 
-                            record.status === 'LATE' ? { backgroundColor: '#FFF2E8' } : { backgroundColor: '#ECFDF5' }
+                            record.status === 'LATE' ? { backgroundColor: isDarkMode ? '#FF7A0020' : '#FFF2E8' } : { backgroundColor: isDarkMode ? '#22C55E20' : '#ECFDF5' }
                           ]}>
                             <Text style={[
                               styles.avatarInitials,
@@ -279,7 +289,7 @@ export default function ProfessorDashboard({
 
                       <View style={styles.studentInfo}>
                         <View style={styles.studentNameRow}>
-                          <Text style={styles.studentName} numberOfLines={1}>{record.studentName}</Text>
+                          <Text style={[styles.studentName, { color: colors.text }]} numberOfLines={1}>{record.studentName}</Text>
                           
                           {/* Arrival status pill */}
                           <View style={[
@@ -302,14 +312,14 @@ export default function ProfessorDashboard({
                             </View>
                           )}
                         </View>
-                        <Text style={styles.studentIdText}>
-                          ID: {record.studentId} • {record.year} ({record.section}) • {record.timestamp}
+                        <Text style={[styles.studentIdText, { color: colors.subText }]}>
+                          ID: {record.studentId} • {formatAcademicSection(activeSession?.subjectId || 'CS', record.year, record.section)} • {record.timestamp}
                         </Text>
                       </View>
                     </View>
 
                     {/* Verification Chips Status bar */}
-                    <View style={styles.verificationBar}>
+                    <View style={[styles.verificationBar, { borderTopColor: colors.border }]}>
                       <View style={[styles.verifChip, record.qrVerified ? styles.verifChipGreen : styles.verifChipRed]}>
                         <Text style={[styles.verifChipText, record.qrVerified ? styles.verifTextGreen : styles.verifTextRed]}>
                           {record.qrVerified ? '✓ QR Verified' : '✗ QR Code'}
@@ -332,10 +342,10 @@ export default function ProfessorDashboard({
                     </View>
 
                     {/* Details row: excuse or distance details */}
-                    <View style={styles.rosterDetailsRow}>
+                    <View style={[styles.rosterDetailsRow, { borderTopColor: colors.border }]}>
                       {isExcused ? (
-                        <View style={styles.excuseCallout}>
-                          <Text style={styles.excuseCalloutText} numberOfLines={1}>
+                        <View style={[styles.excuseCallout, { backgroundColor: isDarkMode ? '#11182740' : '#FAFBFC', borderColor: colors.border }]}>
+                          <Text style={[styles.excuseCalloutText, { color: colors.text }]} numberOfLines={1}>
                             📎 Excuse: {record.excuseReason}
                           </Text>
                           <TouchableOpacity 
@@ -356,16 +366,16 @@ export default function ProfessorDashboard({
                             📍 GPS Coordinates: {record.latitude.toFixed(5)}, {record.longitude.toFixed(5)}
                           </Text>
                           {record.isRemoteStandpoint && (
-                            <View style={styles.remoteReportDetailsBox}>
+                            <View style={[styles.remoteReportDetailsBox, { backgroundColor: isDarkMode ? '#11182740' : '#FAFBFC', borderColor: colors.border }]}>
                               <View style={styles.remoteReportHeader}>
                                 <Text style={styles.remoteReportAlertTitle}>⚠️ ATTENDING CLASS OFF-SITE</Text>
                               </View>
-                              <Text style={styles.remoteReportValueText}>
-                                <Text style={{ fontWeight: '700', color: '#111827' }}>Location: </Text>
+                              <Text style={[styles.remoteReportValueText, { color: colors.text }]}>
+                                <Text style={{ fontWeight: '700', color: colors.text }}>Location: </Text>
                                 {record.remoteLocationName || 'N/A'}
                               </Text>
-                              <Text style={styles.remoteReportValueText}>
-                                <Text style={{ fontWeight: '700', color: '#111827' }}>Reason: </Text>
+                              <Text style={[styles.remoteReportValueText, { color: colors.text }]}>
+                                <Text style={{ fontWeight: '700', color: colors.text }}>Reason: </Text>
                                 {record.remoteLocationReason || 'N/A'}
                               </Text>
                             </View>
@@ -397,7 +407,7 @@ export default function ProfessorDashboard({
                   <Text style={[styles.pageBtnText, currentPage === 1 && styles.pageBtnTextDisabled]}>◀ Prev</Text>
                 </TouchableOpacity>
                 
-                <Text style={styles.pageIndicator}>
+                <Text style={[styles.pageIndicator, { color: colors.text }]}>
                   Page {currentPage} of {totalPages}
                 </Text>
                 
@@ -426,11 +436,11 @@ export default function ProfessorDashboard({
           onRequestClose={() => setIsExcuseLightboxVisible(false)}
         >
           <View style={styles.lightboxOverlay}>
-            <View style={styles.lightboxContent}>
-              <View style={styles.lightboxHeader}>
+            <View style={[styles.lightboxContent, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+              <View style={[styles.lightboxHeader, { borderBottomColor: colors.border }]}>
                 <View>
-                  <Text style={styles.lightboxTitle}>Excuse Support Attachment</Text>
-                  <Text style={styles.lightboxSubtitle}>Student: {lightboxStudentName}</Text>
+                  <Text style={[styles.lightboxTitle, { color: colors.text }]}>Excuse Support Attachment</Text>
+                  <Text style={[styles.lightboxSubtitle, { color: colors.subText }]}>Student: {lightboxStudentName}</Text>
                 </View>
                 <TouchableOpacity style={styles.lightboxCloseBtn} onPress={() => setIsExcuseLightboxVisible(false)}>
                   <Text style={styles.lightboxCloseText}>✕</Text>
@@ -453,7 +463,7 @@ export default function ProfessorDashboard({
                 )}
               </View>
               
-              <Text style={styles.lightboxFooterText}>
+              <Text style={[styles.lightboxFooterText, { color: colors.subText }]}>
                 ✓ Validated against official department dean waiver records.
               </Text>
             </View>
@@ -465,10 +475,10 @@ export default function ProfessorDashboard({
 
   // RENDER INITIATION / CONFIGURATION SCREEN (Redesigned with Step-by-Step wizard indicators)
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <View style={styles.dashboardHeader}>
-        <Text style={styles.headerTitle}>Professor Terminal</Text>
-        <Text style={styles.headerSubtitle}>Start a secured class attendance roll call session.</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Professor Terminal</Text>
+        <Text style={[styles.headerSubtitle, { color: colors.subText }]}>Start a secured class attendance roll call session.</Text>
       </View>
 
       {/* Modern Horizontal Wizard Step Indicator */}
@@ -477,7 +487,7 @@ export default function ProfessorDashboard({
           <View style={[styles.stepNumberCircle, launcherStep >= 1 && styles.stepNumberCircleActive]}>
             <Text style={[styles.stepNumberText, launcherStep >= 1 && styles.stepNumberTextActive]}>1</Text>
           </View>
-          <Text style={[styles.stepIndicatorLabelText, launcherStep === 1 && styles.stepIndicatorLabelTextActive]}>Mode</Text>
+          <Text style={[styles.stepIndicatorLabelText, { color: colors.subText }, launcherStep === 1 && styles.stepIndicatorLabelTextActive]}>Mode</Text>
         </View>
         
         <View style={[styles.wizardLine, launcherStep >= 2 && styles.wizardLineActive]} />
@@ -486,7 +496,7 @@ export default function ProfessorDashboard({
           <View style={[styles.stepNumberCircle, launcherStep >= 2 && styles.stepNumberCircleActive]}>
             <Text style={[styles.stepNumberText, launcherStep >= 2 && styles.stepNumberTextActive]}>2</Text>
           </View>
-          <Text style={[styles.stepIndicatorLabelText, launcherStep === 2 && styles.stepIndicatorLabelTextActive]}>Subject</Text>
+          <Text style={[styles.stepIndicatorLabelText, { color: colors.subText }, launcherStep === 2 && styles.stepIndicatorLabelTextActive]}>Subject</Text>
         </View>
 
         <View style={[styles.wizardLine, launcherStep >= 3 && styles.wizardLineActive]} />
@@ -495,7 +505,7 @@ export default function ProfessorDashboard({
           <View style={[styles.stepNumberCircle, launcherStep >= 3 && styles.stepNumberCircleActive]}>
             <Text style={[styles.stepNumberText, launcherStep >= 3 && styles.stepNumberTextActive]}>3</Text>
           </View>
-          <Text style={[styles.stepIndicatorLabelText, launcherStep === 3 && styles.stepIndicatorLabelTextActive]}>Timer</Text>
+          <Text style={[styles.stepIndicatorLabelText, { color: colors.subText }, launcherStep === 3 && styles.stepIndicatorLabelTextActive]}>Timer</Text>
         </View>
       </View>
 
@@ -503,38 +513,38 @@ export default function ProfessorDashboard({
         
         {/* STEP 1: Delivery Mode Selection */}
         {launcherStep === 1 && (
-          <View style={styles.wizardCard}>
-            <Text style={styles.wizardCardTitle}>Step 1: Choose Delivery Mode</Text>
-            <Text style={styles.wizardCardSub}>Select how this class will be conducted. Face-to-Face enforces physical GPS verification check bounds.</Text>
+          <View style={[styles.wizardCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+            <Text style={[styles.wizardCardTitle, { color: colors.text }]}>Step 1: Choose Delivery Mode</Text>
+            <Text style={[styles.wizardCardSub, { color: colors.subText }]}>Select how this class will be conducted. Face-to-Face enforces physical GPS verification check bounds.</Text>
 
             <View style={styles.deliveryModeSelector}>
               <TouchableOpacity
-                style={[styles.deliveryBtnOption, !isOnline && styles.deliveryBtnOptionActive]}
+                style={[styles.deliveryBtnOption, isDarkMode && { backgroundColor: '#11182740', borderColor: colors.border }, !isOnline && styles.deliveryBtnOptionActive]}
                 onPress={() => setIsOnline(false)}
                 activeOpacity={0.8}
               >
                 <Text style={styles.deliveryBtnEmoji}>🏫</Text>
-                <Text style={[styles.deliveryBtnLabel, !isOnline && styles.deliveryBtnLabelActive]}>Face-to-Face</Text>
-                <Text style={styles.deliveryBtnSub}>Requires physical GPS classroom proximity check</Text>
+                <Text style={[styles.deliveryBtnLabel, { color: colors.text }, !isOnline && styles.deliveryBtnLabelActive]}>Face-to-Face</Text>
+                <Text style={[styles.deliveryBtnSub, { color: colors.subText }]}>Requires physical GPS classroom proximity check</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.deliveryBtnOption, isOnline && styles.deliveryBtnOptionActive]}
+                style={[styles.deliveryBtnOption, isDarkMode && { backgroundColor: '#11182740', borderColor: colors.border }, isOnline && styles.deliveryBtnOptionActive]}
                 onPress={() => setIsOnline(true)}
                 activeOpacity={0.8}
               >
                 <Text style={styles.deliveryBtnEmoji}>🌐</Text>
-                <Text style={[styles.deliveryBtnLabel, isOnline && styles.deliveryBtnLabelActive]}>Online Class</Text>
-                <Text style={styles.deliveryBtnSub}>Check in from home (Proximity check bypassed)</Text>
+                <Text style={[styles.deliveryBtnLabel, { color: colors.text }, isOnline && styles.deliveryBtnLabelActive]}>Online Class</Text>
+                <Text style={[styles.deliveryBtnSub, { color: colors.subText }]}>Check in from home (Proximity check bypassed)</Text>
               </TouchableOpacity>
             </View>
 
             {isOnline && (
-              <View style={styles.onlineClassroomNotice}>
+              <View style={[styles.onlineClassroomNotice, isDarkMode && { backgroundColor: '#1e3a8a20', borderColor: '#1e3a8a40' }]}>
                 <Text style={styles.onlineNoticeEmoji}>🌐</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.onlineNoticeTitle}>Virtual Classroom Mode</Text>
-                  <Text style={styles.onlineNoticeSub}>Location check-in coordinates are recorded, but proximity limit restrictions are disabled.</Text>
+                  <Text style={[styles.onlineNoticeTitle, { color: colors.text }]}>Virtual Classroom Mode</Text>
+                  <Text style={[styles.onlineNoticeSub, { color: colors.subText }]}>Location check-in coordinates are recorded, but proximity limit restrictions are disabled.</Text>
                 </View>
               </View>
             )}
@@ -543,44 +553,44 @@ export default function ProfessorDashboard({
 
         {/* STEP 2: Select Subject & Location */}
         {launcherStep === 2 && (
-          <View style={styles.wizardCard}>
-            <Text style={styles.wizardCardTitle}>Step 2: Select Subject {!isOnline && '& Location'}</Text>
-            <Text style={styles.wizardCardSub}>
+          <View style={[styles.wizardCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+            <Text style={[styles.wizardCardTitle, { color: colors.text }]}>Step 2: Select Subject {!isOnline && '& Location'}</Text>
+            <Text style={[styles.wizardCardSub, { color: colors.subText }]}>
               {isOnline 
                 ? 'Choose the course subject you are launching a session for.' 
                 : 'Choose the target classroom and the subject you will teach this semester.'}
             </Text>
 
             {/* Select Class / Subject Dropdown */}
-            <Text style={styles.formLabel}>Select Class / Subject</Text>
+            <Text style={[styles.formLabel, { color: colors.text }]}>Select Class / Subject</Text>
             <TouchableOpacity
-              style={[styles.dropdownTrigger, isSubjectDropdownOpen && styles.dropdownTriggerActive]}
+              style={[styles.dropdownTrigger, { backgroundColor: isDarkMode ? '#111827' : '#ffffff', borderColor: colors.border }, isSubjectDropdownOpen && styles.dropdownTriggerActive]}
               onPress={() => {
                 setIsSubjectDropdownOpen(!isSubjectDropdownOpen);
                 setIsClassroomDropdownOpen(false);
               }}
               activeOpacity={0.8}
             >
-              <Text style={styles.dropdownTriggerText}>
+              <Text style={[styles.dropdownTriggerText, { color: colors.text }]}>
                 {selectedSubject ? `${selectedSubject.code} - ${selectedSubject.name}` : 'Select a subject...'}
               </Text>
-              <Text style={styles.dropdownChevron}>{isSubjectDropdownOpen ? '▲' : '▼'}</Text>
+              <Text style={[styles.dropdownChevron, { color: colors.subText }]}>{isSubjectDropdownOpen ? '▲' : '▼'}</Text>
             </TouchableOpacity>
 
             {isSubjectDropdownOpen && (
-              <ScrollView style={styles.dropdownListContainer} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
+              <ScrollView style={[styles.dropdownListContainer, { backgroundColor: colors.cardBg, borderColor: colors.border }]} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
                 {subjects.map((sub) => (
                   <TouchableOpacity
                     key={sub.id}
-                    style={[styles.dropdownItem, selectedSubjectId === sub.id && styles.dropdownItemActive]}
+                    style={[styles.dropdownItem, { borderBottomColor: colors.border }, selectedSubjectId === sub.id && styles.dropdownItemActive]}
                     onPress={() => {
                       setSelectedSubjectId(sub.id);
                       setIsSubjectDropdownOpen(false);
                     }}
                   >
                     <View style={styles.dropdownItemInfo}>
-                      <Text style={[styles.dropdownItemCode, selectedSubjectId === sub.id && styles.dropdownTextActive]}>{sub.code}</Text>
-                      <Text style={[styles.dropdownItemName, selectedSubjectId === sub.id && styles.dropdownTextActiveSub]}>{sub.name}</Text>
+                      <Text style={[styles.dropdownItemCode, { color: colors.text }, selectedSubjectId === sub.id && styles.dropdownTextActive]}>{sub.code}</Text>
+                      <Text style={[styles.dropdownItemName, { color: colors.subText }, selectedSubjectId === sub.id && styles.dropdownTextActiveSub]}>{sub.name}</Text>
                     </View>
                     {selectedSubjectId === sub.id && <Text style={styles.dropdownCheckMark}>✓</Text>}
                   </TouchableOpacity>
@@ -591,35 +601,35 @@ export default function ProfessorDashboard({
             {/* Select Classroom Location (only shown if F2F mode, which is toggled next) */}
             {!isOnline && (
               <>
-                <Text style={styles.formLabel}>Select Classroom Location</Text>
+                <Text style={[styles.formLabel, { color: colors.text }]}>Select Classroom Location</Text>
                 <TouchableOpacity
-                  style={[styles.dropdownTrigger, isClassroomDropdownOpen && styles.dropdownTriggerActive]}
+                  style={[styles.dropdownTrigger, { backgroundColor: isDarkMode ? '#111827' : '#ffffff', borderColor: colors.border }, isClassroomDropdownOpen && styles.dropdownTriggerActive]}
                   onPress={() => {
                     setIsClassroomDropdownOpen(!isClassroomDropdownOpen);
                     setIsSubjectDropdownOpen(false);
                   }}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.dropdownTriggerText}>
+                  <Text style={[styles.dropdownTriggerText, { color: colors.text }]}>
                     {selectedClassroom ? selectedClassroom.name : 'Select a classroom location...'}
                   </Text>
-                  <Text style={styles.dropdownChevron}>{isClassroomDropdownOpen ? '▲' : '▼'}</Text>
+                  <Text style={[styles.dropdownChevron, { color: colors.subText }]}>{isClassroomDropdownOpen ? '▲' : '▼'}</Text>
                 </TouchableOpacity>
 
                 {isClassroomDropdownOpen && (
-                  <ScrollView style={styles.dropdownListContainer} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
+                  <ScrollView style={[styles.dropdownListContainer, { backgroundColor: colors.cardBg, borderColor: colors.border }]} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
                     {classrooms.filter(c => c.id !== 'room4').map((room) => (
                       <TouchableOpacity
                         key={room.id}
-                        style={[styles.dropdownItem, selectedClassroomId === room.id && styles.dropdownItemActive]}
+                        style={[styles.dropdownItem, { borderBottomColor: colors.border }, selectedClassroomId === room.id && styles.dropdownItemActive]}
                         onPress={() => {
                           setSelectedClassroomId(room.id);
                           setIsClassroomDropdownOpen(false);
                         }}
                       >
                         <View style={styles.dropdownItemInfo}>
-                          <Text style={[styles.dropdownItemCode, selectedClassroomId === room.id && styles.dropdownTextActive]}>{room.name}</Text>
-                          <Text style={[styles.dropdownItemName, selectedClassroomId === room.id && styles.dropdownTextActiveSub]}>
+                          <Text style={[styles.dropdownItemCode, { color: colors.text }, selectedClassroomId === room.id && styles.dropdownTextActive]}>{room.name}</Text>
+                          <Text style={[styles.dropdownItemName, { color: colors.subText }, selectedClassroomId === room.id && styles.dropdownTextActiveSub]}>
                             GPS: {room.latitude.toFixed(5)}, {room.longitude.toFixed(5)}
                           </Text>
                         </View>
@@ -628,7 +638,7 @@ export default function ProfessorDashboard({
                     ))}
 
                     <TouchableOpacity
-                      style={[styles.dropdownItem, { backgroundColor: '#ECFDF5', borderTopWidth: 1, borderTopColor: '#E5E7EB' }]}
+                      style={[styles.dropdownItem, { backgroundColor: isDarkMode ? '#22C55E15' : '#ECFDF5', borderTopWidth: 1, borderTopColor: colors.border }]}
                       onPress={() => {
                         setIsClassroomDropdownOpen(false);
                         setIsRegisterModalVisible(true);
@@ -636,7 +646,7 @@ export default function ProfessorDashboard({
                     >
                       <View style={styles.dropdownItemInfo}>
                         <Text style={[styles.dropdownItemCode, { color: '#22C55E', fontWeight: 'bold' }]}>➕ Register New Area / Location...</Text>
-                        <Text style={styles.dropdownItemName}>Capture where you are standing to save as a new class zone</Text>
+                        <Text style={[styles.dropdownItemName, { color: colors.subText }]}>Capture where you are standing to save as a new class zone</Text>
                       </View>
                     </TouchableOpacity>
                   </ScrollView>
@@ -648,58 +658,56 @@ export default function ProfessorDashboard({
 
         {/* STEP 3: Duration Limit & Summary Confirmation */}
         {launcherStep === 3 && (
-          <View style={styles.wizardCard}>
-            <Text style={styles.wizardCardTitle}>Step 3: Verification Timer & Start</Text>
-            <Text style={styles.wizardCardSub}>Choose how long the QR code remains active. Verify the details summary before launching.</Text>
+          <View style={[styles.wizardCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+            <Text style={[styles.wizardCardTitle, { color: colors.text }]}>Step 3: Verification Timer & Start</Text>
+            <Text style={[styles.wizardCardSub, { color: colors.subText }]}>Choose how long the QR code remains active. Verify the details summary before launching.</Text>
 
-            <Text style={styles.formLabel}>Verification Time Limit</Text>
+            <Text style={[styles.formLabel, { color: colors.text }]}>Verification Time Limit</Text>
             <View style={styles.durationSelector}>
               {[300, 600, 1200].map((dur) => (
                 <TouchableOpacity
                   key={dur}
-                  style={[styles.durationBtn, sessionDuration === dur && styles.durationBtnActive]}
+                  style={[styles.durationBtn, { backgroundColor: isDarkMode ? '#11182740' : '#FAFBFC', borderColor: colors.border }, sessionDuration === dur && styles.durationBtnActive]}
                   onPress={() => setSessionDuration(dur)}
                 >
-                  <Text style={[styles.durationBtnText, sessionDuration === dur && styles.durationBtnTextActive]}>
+                  <Text style={[styles.durationBtnText, { color: colors.text }, sessionDuration === dur && styles.durationBtnTextActive]}>
                     {dur / 60} mins
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
-            <Text style={styles.durationHint}>
+            <Text style={[styles.durationHint, { color: colors.subText }]}>
               Students timing in after 3 minutes will be automatically classified as LATE.
             </Text>
 
             {/* Launch Summary Checklist */}
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryTitle}>📝 Launch Summary Checklist</Text>
+            <View style={[styles.summaryCard, { backgroundColor: isDarkMode ? '#11182740' : '#f0f4f8', borderColor: colors.border }]}>
+              <Text style={[styles.summaryTitle, { color: colors.text }]}>📝 Launch Summary Checklist</Text>
               
-              <View style={styles.summaryItemRow}>
-                <Text style={styles.summaryItemLabel}>Subject:</Text>
-                <Text style={styles.summaryItemVal} numberOfLines={1}>{selectedSubject ? selectedSubject.code : 'N/A'}</Text>
+              <View style={[styles.summaryItemRow, { borderBottomColor: colors.border }]}>
+                <Text style={[styles.summaryItemLabel, { color: colors.subText }]}>Subject:</Text>
+                <Text style={[styles.summaryItemVal, { color: colors.text }]} numberOfLines={1}>{selectedSubject ? selectedSubject.code : 'N/A'}</Text>
               </View>
 
-              <View style={styles.summaryItemRow}>
-                <Text style={styles.summaryItemLabel}>Delivery Mode:</Text>
+              <View style={[styles.summaryItemRow, { borderBottomColor: colors.border }]}>
+                <Text style={[styles.summaryItemLabel, { color: colors.subText }]}>Delivery Mode:</Text>
                 <Text style={[styles.summaryItemVal, { color: isOnline ? '#FF7A00' : '#1E5EFF' }]}>
                   {isOnline ? '🌐 Online' : '🏫 Face-to-Face'}
                 </Text>
               </View>
 
-              <View style={styles.summaryItemRow}>
-                <Text style={styles.summaryItemLabel}>Room / Location:</Text>
-                <Text style={styles.summaryItemVal}>{isOnline ? 'Virtual Room' : (selectedClassroom ? selectedClassroom.name : 'N/A')}</Text>
+              <View style={[styles.summaryItemRow, { borderBottomColor: colors.border }]}>
+                <Text style={[styles.summaryItemLabel, { color: colors.subText }]}>Room / Location:</Text>
+                <Text style={[styles.summaryItemVal, { color: colors.text }]}>{isOnline ? 'Virtual Room' : (selectedClassroom ? selectedClassroom.name : 'N/A')}</Text>
               </View>
 
-
-
-              <View style={styles.summaryItemRow}>
-                <Text style={styles.summaryItemLabel}>Session Timer:</Text>
-                <Text style={styles.summaryItemVal}>{sessionDuration / 60} minutes</Text>
+              <View style={[styles.summaryItemRow, { borderBottomColor: colors.border }]}>
+                <Text style={[styles.summaryItemLabel, { color: colors.subText }]}>Session Timer:</Text>
+                <Text style={[styles.summaryItemVal, { color: colors.text }]}>{sessionDuration / 60} minutes</Text>
               </View>
 
-              <View style={styles.summaryItemRow}>
-                <Text style={styles.summaryItemLabel}>Late Threshold:</Text>
+              <View style={[styles.summaryItemRow, { borderBottomColor: 'transparent' }]}>
+                <Text style={[styles.summaryItemLabel, { color: colors.subText }]}>Late Threshold:</Text>
                 <Text style={[styles.summaryItemVal, { color: '#FF7A00' }]}>After 3 mins</Text>
               </View>
             </View>
@@ -749,34 +757,34 @@ export default function ProfessorDashboard({
         onRequestClose={() => setIsRegisterModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { maxWidth: 360 }]}>
-            <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalHeaderTitle}>📍 Register New Class Area</Text>
+          <View style={[styles.modalCard, { maxWidth: 360, backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+            <View style={[styles.modalHeaderRow, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.modalHeaderTitle, { color: colors.text }]}>📍 Register New Class Area</Text>
               <TouchableOpacity onPress={() => setIsRegisterModalVisible(false)}>
-                <Text style={styles.modalCloseIcon}>✕</Text>
+                <Text style={[styles.modalCloseIcon, { color: colors.subText }]}>✕</Text>
               </TouchableOpacity>
             </View>
 
             <ScrollView contentContainerStyle={{ paddingBottom: 10 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-              <Text style={styles.modalTextBody}>
+              <Text style={[styles.modalTextBody, { color: colors.text }]}>
                 Capture the coordinates where you are standing right now (e.g. at the Gymnasium or Lecture Hall) to register it as a new class zone.
               </Text>
 
-              <Text style={styles.modalLabel}>Location Name</Text>
+              <Text style={[styles.modalLabel, { color: colors.text }]}>Location Name</Text>
               <TextInput
-                style={styles.modalInput}
+                style={[styles.modalInput, { backgroundColor: isDarkMode ? '#111827' : '#ffffff', color: colors.text, borderColor: colors.border }]}
                 placeholder="e.g. Gymnasium, Court Area"
                 value={newLocationName}
                 onChangeText={setNewLocationName}
-                placeholderTextColor="#a0a0a5"
+                placeholderTextColor={colors.subText}
               />
 
-              <View style={styles.gpsDisplayBox}>
-                <Text style={styles.gpsLabel}>📍 Pinned Coords (Standing Point):</Text>
-                <Text style={styles.gpsValue}>
+              <View style={[styles.gpsDisplayBox, { backgroundColor: isDarkMode ? '#11182740' : '#f0f4f8', borderColor: colors.border }]}>
+                <Text style={[styles.gpsLabel, { color: colors.subText }]}>📍 Pinned Coords (Standing Point):</Text>
+                <Text style={[styles.gpsValue, { color: colors.text }]}>
                   14.59951, 120.98421
                 </Text>
-                <Text style={styles.gpsSub}>
+                <Text style={[styles.gpsSub, { color: colors.subText }]}>
                   (Pins geofence center automatically to your current device GPS coordinates)
                 </Text>
               </View>

@@ -17,6 +17,7 @@ interface Props {
   logs: AttendanceSessionLog[];
   role: 'professor' | 'student';
   studentId?: string;
+  isDarkMode?: boolean;
 }
 
 // Mock class list of enrolled students for absentee calculation
@@ -52,10 +53,17 @@ export const formatAcademicSection = (subjectCode: string, yearStr: string, sect
     if (cleaned.length === 1) secLetter = cleaned.toUpperCase();
   }
 
-  return `${prefix}-${yearNum}${secLetter}`;
+  return `${prefix}${yearNum}${secLetter}`;
 };
 
-export default function HistoryScreen({ logs, role, studentId }: Props) {
+export default function HistoryScreen({ logs, role, studentId, isDarkMode = false }: Props) {
+  const colors = {
+    bg: isDarkMode ? '#111827' : '#FAFBFC',
+    text: isDarkMode ? '#F9FAFB' : '#111827',
+    subText: isDarkMode ? '#9CA3AF' : '#6B7280',
+    cardBg: isDarkMode ? '#1F2937' : '#ffffff',
+    border: isDarkMode ? '#374151' : '#E5E7EB',
+  };
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
   
   // Exporter modal states
@@ -273,10 +281,10 @@ export default function HistoryScreen({ logs, role, studentId }: Props) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>📋 Attendance History</Text>
-        <Text style={styles.headerSubtitle}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>📋 Attendance History</Text>
+        <Text style={[styles.headerSubtitle, { color: colors.subText }]}>
           {role === 'professor'
             ? 'Access all saved class sessions and checked-in student logs.'
             : 'Track your personal class check-in attendance records.'}
@@ -311,7 +319,7 @@ export default function HistoryScreen({ logs, role, studentId }: Props) {
           );
 
           return (
-            <View style={[styles.card, isExpanded && styles.cardExpanded]}>
+            <View style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.border }, isExpanded && styles.cardExpanded]}>
               <TouchableOpacity 
                 style={styles.cardHeader} 
                 onPress={() => toggleExpand(item.id)}
@@ -319,25 +327,25 @@ export default function HistoryScreen({ logs, role, studentId }: Props) {
               >
                 <View style={styles.cardHeaderInfo}>
                   <View style={styles.logTitleRow}>
-                    <Text style={styles.subjectCode}>{item.subjectCode}</Text>
-                    <Text style={styles.deliveryIndicator}>
+                    <Text style={[styles.subjectCode, { color: colors.text }]}>{item.subjectCode}</Text>
+                    <Text style={[styles.deliveryIndicator, { color: colors.subText }]}>
                       {' • '}{sectionYearCode}
                     </Text>
-                    <Text style={styles.deliveryIndicator}>
+                    <Text style={[styles.deliveryIndicator, { color: colors.subText }]}>
                       {item.isOnline ? ' • 🌐 Online' : ' • 🏫 F2F'}
                     </Text>
                   </View>
                   
-                  <Text style={styles.subjectName}>{item.subjectName}</Text>
+                  <Text style={[styles.subjectName, { color: colors.text }]}>{item.subjectName}</Text>
                   
-                  <Text style={styles.metaRow}>
+                  <Text style={[styles.metaRow, { color: colors.subText }]}>
                     {item.date}  •  {item.time.split(' - ')[0]}
                   </Text>
                 </View>
 
                 <View style={styles.rightHeaderBadge}>
                   {role === 'professor' ? (
-                    <Text style={styles.summaryStatsMini}>
+                    <Text style={[styles.summaryStatsMini, { color: colors.subText }]}>
                       {onTimeCount + lateCount} present  •  {absentees.length} absent
                     </Text>
                   ) : (
@@ -345,7 +353,7 @@ export default function HistoryScreen({ logs, role, studentId }: Props) {
                       {studentPresent ? (displayedRecords[0]?.status === 'EXCUSED' ? 'EXCUSED' : 'PRESENT') : 'ABSENT'}
                     </Text>
                   )}
-                  <Text style={styles.chevron}>{isExpanded ? '▲' : '▼'}</Text>
+                  <Text style={[styles.chevron, { color: colors.subText }]}>{isExpanded ? '▲' : '▼'}</Text>
                 </View>
               </TouchableOpacity>
 
@@ -353,31 +361,31 @@ export default function HistoryScreen({ logs, role, studentId }: Props) {
                 <View style={styles.expandedContent}>
                   {/* Clean Minimalist Stats Column Divider */}
                   {role === 'professor' && (
-                    <View style={styles.minimalStatsContainer}>
+                    <View style={[styles.minimalStatsContainer, { backgroundColor: isDarkMode ? '#11182740' : '#FAFBFC', borderColor: colors.border }]}>
                       <View style={styles.statColumn}>
                         <Text style={[styles.statValue, { color: '#22C55E' }]}>{onTimeCount}</Text>
-                        <Text style={styles.statLabel}>ON-TIME</Text>
+                        <Text style={[styles.statLabel, { color: colors.subText }]}>ON-TIME</Text>
                       </View>
                       <View style={styles.statDivider} />
                       <View style={styles.statColumn}>
                         <Text style={[styles.statValue, { color: '#F59E0B' }]}>{lateCount}</Text>
-                        <Text style={styles.statLabel}>LATE</Text>
+                        <Text style={[styles.statLabel, { color: colors.subText }]}>LATE</Text>
                       </View>
                       <View style={styles.statDivider} />
                       <View style={styles.statColumn}>
                         <Text style={[styles.statValue, { color: '#1E5EFF' }]}>{excusedCount}</Text>
-                        <Text style={styles.statLabel}>EXCUSED</Text>
+                        <Text style={[styles.statLabel, { color: colors.subText }]}>EXCUSED</Text>
                       </View>
                       <View style={styles.statDivider} />
                       <View style={styles.statColumn}>
                         <Text style={[styles.statValue, { color: '#EF4444' }]}>{absentees.length}</Text>
-                        <Text style={styles.statLabel}>ABSENT</Text>
+                        <Text style={[styles.statLabel, { color: colors.subText }]}>ABSENT</Text>
                       </View>
                     </View>
                   )}
 
                   <View style={styles.expandedHeaderRow}>
-                    <Text style={styles.expandedTitle}>
+                    <Text style={[styles.expandedTitle, { color: colors.text }]}>
                       {role === 'professor' ? 'Verified Roster' : 'Check-in Details'}
                     </Text>
                     {role === 'professor' && (
@@ -394,28 +402,28 @@ export default function HistoryScreen({ logs, role, studentId }: Props) {
                   </View>
 
                   {displayedRecords.length === 0 ? (
-                    <Text style={styles.emptyRecords}>No check-in record found.</Text>
+                    <Text style={[styles.emptyRecords, { color: colors.subText }]}>No check-in record found.</Text>
                   ) : (
                     displayedRecords.map((record) => {
                       const isExc = record.status === 'EXCUSED';
                       const isLate = record.status === 'LATE';
                       const studSecCode = formatAcademicSection(item.subjectCode, record.year, record.section);
                       return (
-                        <View key={record.studentId} style={styles.rosterItem}>
+                        <View key={record.studentId} style={[styles.rosterItem, { borderBottomColor: colors.border }]}>
                           <View style={styles.studentDetails}>
                             <View style={styles.avatar}>
                               <Text style={styles.avatarText}>{getInitials(record.studentName)}</Text>
                             </View>
                             <View style={{ flex: 1 }}>
                               <View style={styles.studentNameRow}>
-                                <Text style={styles.studentNameText}>{record.studentName}</Text>
+                                <Text style={[styles.studentNameText, { color: colors.text }]}>{record.studentName}</Text>
                                 {record.isIrregular && (
                                   <View style={styles.irregBadge}>
                                     <Text style={styles.irregBadgeText}>IRREGULAR</Text>
                                   </View>
                                 )}
                               </View>
-                              <Text style={styles.studentIdText}>
+                              <Text style={[styles.studentIdText, { color: colors.subText }]}>
                                 ID: {record.studentId}  •  {studSecCode}  •  {record.timestamp}
                               </Text>
                               {isExc ? (
@@ -433,7 +441,7 @@ export default function HistoryScreen({ logs, role, studentId }: Props) {
                                 </View>
                               ) : (
                                 <View>
-                                  <Text style={styles.distanceText}>
+                                  <Text style={[styles.distanceText, { color: colors.subText }]}>
                                     📍 GPS: {item.isOnline ? `Remote [${record.latitude.toFixed(5)}, ${record.longitude.toFixed(5)}]` : `${record.distanceMeters.toFixed(1)}m from classroom`}
                                   </Text>
                                   {item.isOnline && record.isRemoteStandpoint && (
@@ -460,25 +468,25 @@ export default function HistoryScreen({ logs, role, studentId }: Props) {
                   {/* ABSENTEES LIST */}
                   {role === 'professor' && absentees.length > 0 && (
                     <View style={styles.absentSection}>
-                      <Text style={styles.absentSectionTitle}>Absent ({absentees.length})</Text>
+                      <Text style={[styles.absentSectionTitle, { color: colors.text }]}>Absent ({absentees.length})</Text>
                       {absentees.map((record) => {
                         const studSecCode = formatAcademicSection(item.subjectCode, record.year, record.section);
                         return (
-                          <View key={record.studentId} style={styles.absentRosterItem}>
+                          <View key={record.studentId} style={[styles.absentRosterItem, { borderBottomColor: colors.border }]}>
                             <View style={styles.studentDetails}>
                               <View style={[styles.avatar, styles.avatarAbsent]}>
                                 <Text style={styles.avatarText}>{getInitials(record.studentName)}</Text>
                               </View>
                               <View style={{ flex: 1 }}>
                                 <View style={styles.studentNameRow}>
-                                  <Text style={styles.absentNameText}>{record.studentName}</Text>
+                                  <Text style={[styles.absentNameText, { color: colors.text }]}>{record.studentName}</Text>
                                   {record.isIrregular && (
                                     <View style={styles.irregBadge}>
                                       <Text style={styles.irregBadgeText}>IRREGULAR</Text>
                                     </View>
                                   )}
                                 </View>
-                                <Text style={styles.studentIdText}>
+                                <Text style={[styles.studentIdText, { color: colors.subText }]}>
                                   ID: {record.studentId}  •  {studSecCode}
                                 </Text>
                               </View>

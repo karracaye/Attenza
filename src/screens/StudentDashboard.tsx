@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,28 +6,69 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ActiveSession } from '../data/mockData';
+import { ActiveSession, AttendanceSessionLog } from '../data/mockData';
 import { formatAcademicSection } from './HistoryScreen';
 
 interface Props {
   studentProfile: { studentId: string; studentName: string; year: string; section: string };
   activeSession: ActiveSession | null;
   onNavigateToCheckIn: () => void;
+  historyLogs: AttendanceSessionLog[];
+  isDarkMode?: boolean;
 }
 
 export default function StudentDashboard({
   studentProfile,
   activeSession,
   onNavigateToCheckIn,
+  historyLogs = [],
+  isDarkMode = false,
 }: Props) {
+  // Calculate dynamic stats
+  const totalClasses = historyLogs.length;
+  const attendedClasses = historyLogs.filter(log => 
+    log.records.some(r => r.studentId === studentProfile.studentId && (r.status === 'PRESENT' || r.status === 'LATE'))
+  ).length;
+  const excusedCount = historyLogs.filter(log => 
+    log.records.some(r => r.studentId === studentProfile.studentId && r.status === 'EXCUSED')
+  ).length;
+  
+  const attendanceRate = totalClasses > 0 
+    ? (((attendedClasses + excusedCount) / totalClasses) * 100).toFixed(1) 
+    : '0.0';
+
   // Format section string similar to "CS4B" or standard format
   const sectionCode = formatAcademicSection('CS 402', studentProfile.year, studentProfile.section);
   const cleanSection = sectionCode.replace('-', ''); // e.g. CS3B or CS4B
 
+  const colors = {
+    bg: isDarkMode ? '#111827' : '#FAFBFC',
+    text: isDarkMode ? '#F9FAFB' : '#111827',
+    subText: isDarkMode ? '#9CA3AF' : '#6B7280',
+    cardBg: isDarkMode ? '#1F2937' : '#ffffff',
+    border: isDarkMode ? '#374151' : '#E5E7EB',
+  };
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1500);
+  };
+
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.bg }]}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
       {/* Welcome Banner Header Card */}
       <View style={styles.welcomeCard}>
         <View style={styles.avatarCircle}>
@@ -71,13 +112,13 @@ export default function StudentDashboard({
           </View>
         </TouchableOpacity>
       ) : (
-        <View style={styles.standbyCard}>
+        <View style={[styles.standbyCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
           <View style={{ flex: 1, paddingRight: 8 }}>
             <View style={styles.standbyTitleRow}>
               <View style={styles.standbyDot} />
-              <Text style={styles.standbyTitle}>Attendance Systems Standby</Text>
+              <Text style={[styles.standbyTitle, { color: colors.text }]}>Attendance Systems Standby</Text>
             </View>
-            <Text style={styles.standbySub}>
+            <Text style={[styles.standbySub, { color: colors.subText }]}>
               No active QR roll calls detected for your account. Keep this tab open; your screen will notify you as soon as your professor starts class.
             </Text>
           </View>
@@ -91,7 +132,7 @@ export default function StudentDashboard({
       <View style={styles.sectionHeaderRow}>
         <View style={styles.sectionTitleGroup}>
           <Ionicons name="bar-chart" size={16} color="#1E5EFF" style={styles.sectionIcon} />
-          <Text style={styles.sectionTitle}>Attendance Summary</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Attendance Summary</Text>
         </View>
         <TouchableOpacity>
           <Text style={styles.viewAllLink}>View Details &gt;</Text>
@@ -100,25 +141,25 @@ export default function StudentDashboard({
 
       <View style={styles.statsRow}>
         {/* Card 1: Attendance Rate */}
-        <View style={styles.statBox}>
+        <View style={[styles.statBox, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
           <View style={styles.statTextGroup}>
-            <Text style={styles.statLabel}>Attendance Rate</Text>
-            <Text style={styles.statVal}>97.5 %</Text>
-            <Text style={styles.statSub}>Target: &gt; 90%</Text>
+            <Text style={[styles.statLabel, { color: colors.subText }]}>Attendance Rate</Text>
+            <Text style={[styles.statVal, { color: colors.text }]}>{attendanceRate} %</Text>
+            <Text style={[styles.statSub, { color: colors.subText }]}>{totalClasses > 0 ? 'Target: > 90%' : 'No sessions run'}</Text>
           </View>
-          <View style={styles.progressRingSim}>
+          <View style={[styles.progressRingSim, { backgroundColor: isDarkMode ? '#1E5EFF20' : '#EAF2FF' }]}>
             <Ionicons name="trending-up" size={16} color="#1E5EFF" />
           </View>
         </View>
 
         {/* Card 2: Classes Attended */}
-        <View style={styles.statBox}>
+        <View style={[styles.statBox, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
           <View style={styles.statTextGroup}>
-            <Text style={styles.statLabel}>Classes Attended</Text>
-            <Text style={styles.statVal}>39 / 40</Text>
-            <Text style={styles.statSub}>1 excused absence</Text>
+            <Text style={[styles.statLabel, { color: colors.subText }]}>Classes Attended</Text>
+            <Text style={[styles.statVal, { color: colors.text }]}>{attendedClasses + excusedCount} / {totalClasses}</Text>
+            <Text style={[styles.statSub, { color: colors.subText }]}>{excusedCount} excused absence{excusedCount !== 1 ? 's' : ''}</Text>
           </View>
-          <View style={styles.calendarIconBox}>
+          <View style={[styles.calendarIconBox, { backgroundColor: isDarkMode ? '#1E5EFF20' : '#EAF2FF' }]}>
             <Ionicons name="calendar-outline" size={18} color="#1E5EFF" />
           </View>
         </View>
@@ -128,7 +169,7 @@ export default function StudentDashboard({
       <View style={styles.sectionHeaderRow}>
         <View style={styles.sectionTitleGroup}>
           <Ionicons name="trophy-outline" size={16} color="#1E5EFF" style={styles.sectionIcon} />
-          <Text style={styles.sectionTitle}>Attendance Achievements</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Attendance Achievements</Text>
         </View>
         <TouchableOpacity>
           <Text style={styles.viewAllLink}>View All &gt;</Text>
@@ -136,54 +177,97 @@ export default function StudentDashboard({
       </View>
 
       {/* Achievements Card enclosing items list */}
-      <View style={styles.achievementsContainer}>
+      <View style={[styles.achievementsContainer, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
         {/* Item 1: Perfect Attendance */}
-        <View style={styles.achievementItem}>
-          <View style={[styles.badgeIconCircle, { backgroundColor: '#EAF2FF' }]}>
-            <Ionicons name="trophy" size={16} color="#1E5EFF" />
-          </View>
-          <View style={styles.achievementTextInfo}>
-            <Text style={styles.achievementTitle}>Perfect Attendance</Text>
-            <Text style={styles.achievementDesc}>100% attendance rate across all semester courses.</Text>
-          </View>
-          <View style={styles.unlockedBadge}>
-            <Text style={styles.unlockedText}>✓ Unlocked</Text>
-          </View>
-        </View>
+        {(() => {
+          const isPerfectUnlocked = parseFloat(attendanceRate) === 100 && totalClasses > 0;
+          return (
+            <View style={[styles.achievementItem, { borderBottomColor: colors.border }]}>
+              <View style={[styles.badgeIconCircle, { backgroundColor: isPerfectUnlocked ? (isDarkMode ? '#1E5EFF20' : '#EAF2FF') : (isDarkMode ? '#374151' : '#F3F4F6') }]}>
+                <Ionicons name="trophy" size={16} color={isPerfectUnlocked ? '#1E5EFF' : '#9CA3AF'} />
+              </View>
+              <View style={styles.achievementTextInfo}>
+                <Text style={[styles.achievementTitle, { color: colors.text }]}>Perfect Attendance</Text>
+                <Text style={[styles.achievementDesc, { color: colors.subText }]}>100% attendance rate across all semester courses.</Text>
+              </View>
+              <View style={[styles.unlockedBadge, { 
+                backgroundColor: isPerfectUnlocked ? '#ECFDF5' : (isDarkMode ? '#37415150' : '#F3F4F6'),
+                borderColor: isPerfectUnlocked ? '#22C55E50' : (isDarkMode ? '#4B5563' : '#E5E7EB')
+              }]}>
+                <Text style={[styles.unlockedText, { color: isPerfectUnlocked ? '#22C55E' : '#9CA3AF' }]}>
+                  {isPerfectUnlocked ? '✓ Unlocked' : 'Locked'}
+                </Text>
+              </View>
+            </View>
+          );
+        })()}
 
         {/* Item 2: Never Late */}
-        <View style={styles.achievementItem}>
-          <View style={[styles.badgeIconCircle, { backgroundColor: '#ECFDF5' }]}>
-            <Ionicons name="shield-checkmark" size={16} color="#22C55E" />
-          </View>
-          <View style={styles.achievementTextInfo}>
-            <Text style={styles.achievementTitle}>Never Late</Text>
-            <Text style={styles.achievementDesc}>Never marked late or excused this semester.</Text>
-          </View>
-          <View style={styles.unlockedBadge}>
-            <Text style={styles.unlockedText}>✓ Unlocked</Text>
-          </View>
-        </View>
+        {(() => {
+          const lateLogsCount = historyLogs.filter(log => 
+            log.records.some(r => r.studentId === studentProfile.studentId && (r.status === 'LATE' || r.status === 'EXCUSED'))
+          ).length;
+          const isNeverLateUnlocked = totalClasses > 0 && lateLogsCount === 0;
+          return (
+            <View style={[styles.achievementItem, { borderBottomColor: colors.border }]}>
+              <View style={[styles.badgeIconCircle, { backgroundColor: isNeverLateUnlocked ? (isDarkMode ? '#22C55E20' : '#ECFDF5') : (isDarkMode ? '#374151' : '#F3F4F6') }]}>
+                <Ionicons name="shield-checkmark" size={16} color={isNeverLateUnlocked ? '#22C55E' : '#9CA3AF'} />
+              </View>
+              <View style={styles.achievementTextInfo}>
+                <Text style={[styles.achievementTitle, { color: colors.text }]}>Never Late</Text>
+                <Text style={[styles.achievementDesc, { color: colors.subText }]}>Never marked late or excused this semester.</Text>
+              </View>
+              <View style={[styles.unlockedBadge, { 
+                backgroundColor: isNeverLateUnlocked ? '#ECFDF5' : (isDarkMode ? '#37415150' : '#F3F4F6'),
+                borderColor: isNeverLateUnlocked ? '#22C55E50' : (isDarkMode ? '#4B5563' : '#E5E7EB')
+              }]}>
+                <Text style={[styles.unlockedText, { color: isNeverLateUnlocked ? '#22C55E' : '#9CA3AF' }]}>
+                  {isNeverLateUnlocked ? '✓ Unlocked' : 'Locked'}
+                </Text>
+              </View>
+            </View>
+          );
+        })()}
 
         {/* Item 3: 100-Day Streak */}
-        <View style={[styles.achievementItem, { borderBottomWidth: 0, paddingBottom: 0, flexDirection: 'column', alignItems: 'stretch' }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <View style={[styles.badgeIconCircle, { backgroundColor: '#FFF2E8' }]}>
-              <Ionicons name="flame" size={16} color="#FF7A00" />
+        {(() => {
+          const presentLogs = historyLogs.filter(log => 
+            log.records.some(r => r.studentId === studentProfile.studentId && (r.status === 'PRESENT' || r.status === 'LATE'))
+          );
+          const streakDays = presentLogs.length;
+          const streakPercent = Math.min((streakDays / 100) * 100, 100);
+          const isStreakUnlocked = streakDays >= 100;
+          return (
+            <View style={[styles.achievementItem, { borderBottomWidth: 0, paddingBottom: 0, flexDirection: 'column', alignItems: 'stretch' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={[styles.badgeIconCircle, { backgroundColor: isStreakUnlocked ? (isDarkMode ? '#FF7A0020' : '#FFF2E8') : (isDarkMode ? '#374151' : '#F3F4F6') }]}>
+                  <Ionicons name="flame" size={16} color={isStreakUnlocked ? '#FF7A00' : '#9CA3AF'} />
+                </View>
+                <View style={styles.achievementTextInfo}>
+                  <Text style={[styles.achievementTitle, { color: colors.text }]}>100-Day Streak</Text>
+                  <Text style={[styles.achievementDesc, { color: colors.subText }]}>Consequent daily checks for 100 days.</Text>
+                </View>
+                <View style={[styles.unlockedBadge, { 
+                  backgroundColor: isStreakUnlocked ? '#FFF2E8' : (isDarkMode ? '#37415150' : '#F3F4F6'),
+                  borderColor: isStreakUnlocked ? '#FF7A0050' : (isDarkMode ? '#4B5563' : '#E5E7EB')
+                }]}>
+                  <Text style={[styles.unlockedText, { color: isStreakUnlocked ? '#FF7A00' : '#9CA3AF' }]}>
+                    {isStreakUnlocked ? '✓ Unlocked' : 'In Progress'}
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={styles.streakProgressRow}>
+                <View style={[styles.progressTrack, { backgroundColor: isDarkMode ? '#374151' : '#E5E7EB' }]}>
+                  <View style={[styles.progressBarFill, { width: `${streakPercent}%`, backgroundColor: isStreakUnlocked ? '#FF7A00' : '#9CA3AF' }]} />
+                </View>
+                <Text style={[styles.streakProgressText, { color: isStreakUnlocked ? '#FF7A00' : '#9CA3AF' }]}>
+                  {streakDays} / 100 DAYS
+                </Text>
+              </View>
             </View>
-            <View style={styles.achievementTextInfo}>
-              <Text style={styles.achievementTitle}>100-Day Streak</Text>
-              <Text style={styles.achievementDesc}>Consequent daily checks for 100 days.</Text>
-            </View>
-          </View>
-          
-          <View style={styles.streakProgressRow}>
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressBarFill, { width: '84%' }]} />
-            </View>
-            <Text style={styles.streakProgressText}>84 / 100 DAYS</Text>
-          </View>
-        </View>
+          );
+        })()}
       </View>
 
       <View style={{ height: 40 }} />
@@ -499,19 +583,19 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     flex: 1,
-    height: 4,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 2,
+    height: 6,
+    backgroundColor: '#EDF2F7',
+    borderRadius: 3,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
     backgroundColor: '#FF7A00',
-    borderRadius: 2,
+    borderRadius: 3,
   },
   streakProgressText: {
-    fontSize: 9,
+    fontSize: 9.5,
     color: '#FF7A00',
-    fontWeight: '800',
+    fontWeight: '900',
   },
 });
