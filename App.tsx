@@ -85,6 +85,11 @@ export default function App() {
   const [professorTab, setProfessorTab] = useState<ProfessorTab>('dashboard');
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
 
+  // Appearance States (Accessible across screens)
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [appLanguage, setAppLanguage] = useState<'English' | 'Filipino' | 'Spanish'>('English');
+  const [appFontSize, setAppFontSize] = useState<'Small' | 'Medium' | 'Large'>('Medium');
+
   // Entities state
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
   const [historyLogs, setHistoryLogs] = useState<AttendanceSessionLog[]>([]);
@@ -432,12 +437,18 @@ export default function App() {
     setRole(role === 'student' ? 'professor' : 'student');
   };
 
-  // Render Student Profile View (Read-Only)
+  // Render Student Profile View (Settings Panel)
   const renderStudentProfileView = () => {
     return (
       <StudentProfileScreen
         profile={studentProfile}
         onLogout={handleLogout}
+        isDarkMode={isDarkMode}
+        setIsDarkMode={setIsDarkMode}
+        appLanguage={appLanguage}
+        setAppLanguage={setAppLanguage}
+        appFontSize={appFontSize}
+        setAppFontSize={setAppFontSize}
       />
     );
   };
@@ -773,9 +784,24 @@ export default function App() {
 interface ProfileProps {
   profile: StudentProfile;
   onLogout: () => void;
+  isDarkMode: boolean;
+  setIsDarkMode: (val: boolean) => void;
+  appLanguage: 'English' | 'Filipino' | 'Spanish';
+  setAppLanguage: (val: 'English' | 'Filipino' | 'Spanish') => void;
+  appFontSize: 'Small' | 'Medium' | 'Large';
+  setAppFontSize: (val: 'Small' | 'Medium' | 'Large') => void;
 }
 
-function StudentProfileScreen({ profile, onLogout }: ProfileProps) {
+function StudentProfileScreen({
+  profile,
+  onLogout,
+  isDarkMode,
+  setIsDarkMode,
+  appLanguage,
+  setAppLanguage,
+  appFontSize,
+  setAppFontSize,
+}: ProfileProps) {
   const id = profile.studentId;
   const name = profile.studentName;
   const year = profile.year;
@@ -793,14 +819,106 @@ function StudentProfileScreen({ profile, onLogout }: ProfileProps) {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   
-  // Appearance Values
-  const [darkMode, setDarkMode] = useState(false);
+  // System theme is local state
   const [systemTheme, setSystemTheme] = useState(true);
-  const [language, setLanguage] = useState('English');
-  const [fontSize, setFontSize] = useState<'Small' | 'Medium' | 'Large'>('Medium');
 
   // Hardcoded device identifier
   const [hardwareId, setHardwareId] = useState('F8C2-E40B-998A-3211-DE5F');
+
+  // Translation mapping dictionary
+  const translations = {
+    English: {
+      title: 'Settings & Profile',
+      sub: 'Manage your student account, modify appearance options, and review privacy details.',
+      account: 'Account',
+      profileInfo: 'Profile Information',
+      studentId: 'Student ID',
+      email: 'University Email',
+      password: 'Security Password',
+      linkedDevices: 'Linked Devices',
+      appearance: 'Appearance',
+      lightDark: 'Light / Dark Mode',
+      lightDarkSub: 'Switch app color mode layout',
+      systemTheme: 'System Theme',
+      systemThemeSub: 'Sync theme to match mobile OS',
+      language: 'App Language',
+      languageSub: 'Currently configured vocabulary',
+      fontSize: 'Font Size',
+      privacy: 'Privacy & Security',
+      privacyPolicy: 'Privacy Policy',
+      terms: 'Terms & Conditions',
+      delete: 'Delete Account',
+      logout: 'Log Out Account',
+    },
+    Filipino: {
+      title: 'Mga Setting at Profile',
+      sub: 'Pamahalaan ang iyong account ng mag-aaral, baguhin ang mga pagpipilian sa hitsura, at suriin ang mga detalye ng privacy.',
+      account: 'Account',
+      profileInfo: 'Impormasyon ng Profile',
+      studentId: 'Student ID',
+      email: 'Email ng Unibersidad',
+      password: 'Password sa Seguridad',
+      linkedDevices: 'Mga Nakakonektang Device',
+      appearance: 'Hitsura',
+      lightDark: 'Light / Dark Mode',
+      lightDarkSub: 'Baguhin ang kulay at tema ng app',
+      systemTheme: 'Tema ng Sistema',
+      systemThemeSub: 'I-sync ang tema sa mobile OS',
+      language: 'Wika ng App',
+      languageSub: 'Kasalukuyang ginagamit na wika',
+      fontSize: 'Laki ng Font',
+      privacy: 'Privacy at Seguridad',
+      privacyPolicy: 'Patakaran sa Privacy',
+      terms: 'Mga Tuntunin at Kundisyon',
+      delete: 'I-delete ang Account',
+      logout: 'Mag-log Out ng Account',
+    },
+    Spanish: {
+      title: 'Configuración y Perfil',
+      sub: 'Administre su cuenta de estudiante, modifique las opciones de apariencia y revise los detalles de privacidad.',
+      account: 'Cuenta',
+      profileInfo: 'Información de Perfil',
+      studentId: 'ID de Estudiante',
+      email: 'Correo de la Universidad',
+      password: 'Contraseña de Seguridad',
+      linkedDevices: 'Dispositivos Vinculados',
+      appearance: 'Apariencia',
+      lightDark: 'Modo Claro / Oscuro',
+      lightDarkSub: 'Cambiar el tema de color de la aplicación',
+      systemTheme: 'Tema del Sistema',
+      systemThemeSub: 'Sincronizar el tema con el sistema operativo móvil',
+      language: 'Idioma de la App',
+      languageSub: 'Vocabulario configurado actualmente',
+      fontSize: 'Tamaño de Fuente',
+      privacy: 'Privacidad y Seguridad',
+      privacyPolicy: 'Política de Privacidad',
+      terms: 'Términos y Condiciones',
+      delete: 'Eliminar Cuenta',
+      logout: 'Cerrar Sesión',
+    }
+  };
+  const t = translations[appLanguage] || translations.English;
+
+  // Active theme properties
+  const theme = {
+    bg: isDarkMode ? '#111827' : '#FAFBFC',
+    text: isDarkMode ? '#F9FAFB' : '#111827',
+    subText: isDarkMode ? '#9CA3AF' : '#6B7280',
+    cardBg: isDarkMode ? '#1F2937' : '#ffffff',
+    cardBorder: isDarkMode ? '#374151' : '#E5E7EB',
+    disabledInputBg: isDarkMode ? '#37415160' : '#FAFBFC',
+    inputText: isDarkMode ? '#F3F4F6' : '#374151',
+    accordionHeaderBg: isDarkMode ? '#1F2937' : '#FAFBFC',
+    innerCardBg: isDarkMode ? '#11182740' : '#FAFBFC',
+    deviceDetailGroupBg: isDarkMode ? '#11182740' : '#F9FAFB',
+  };
+
+  // Active font scaling mapper
+  const getFontSize = (baseSize: number) => {
+    if (appFontSize === 'Small') return baseSize * 0.85;
+    if (appFontSize === 'Large') return baseSize * 1.15;
+    return baseSize;
+  };
 
   const handleChangePassword = () => {
     if (isChangingPassword) {
@@ -829,41 +947,41 @@ function StudentProfileScreen({ profile, onLogout }: ProfileProps) {
   };
 
   return (
-    <ScrollView style={styles.profileContainer} showsVerticalScrollIndicator={false}>
+    <ScrollView style={[styles.profileContainer, { backgroundColor: theme.bg }]} showsVerticalScrollIndicator={false}>
       <View style={styles.profileHeader}>
-        <Text style={styles.profileHeaderTitle}>Settings & Profile</Text>
-        <Text style={styles.profileHeaderSub}>Manage your student account, modify appearance options, and review privacy details.</Text>
+        <Text style={[styles.profileHeaderTitle, { color: theme.text, fontSize: getFontSize(20) }]}>{t.title}</Text>
+        <Text style={[styles.profileHeaderSub, { color: theme.subText, fontSize: getFontSize(12) }]}>{t.sub}</Text>
       </View>
 
       {/* ACCORDION 1: ACCOUNT */}
-      <View style={styles.accordionCard}>
+      <View style={[styles.accordionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
         <TouchableOpacity 
-          style={styles.accordionHeader} 
+          style={[styles.accordionHeader, { backgroundColor: theme.accordionHeaderBg }]} 
           onPress={() => setIsAccountOpen(!isAccountOpen)}
           activeOpacity={0.7}
         >
           <View style={styles.accordionHeaderLeft}>
             <Ionicons name="person-circle" size={24} color="#1E5EFF" style={{ marginRight: 10 }} />
-            <Text style={styles.accordionTitle}>Account</Text>
+            <Text style={[styles.accordionTitle, { color: theme.text, fontSize: getFontSize(14) }]}>{t.account}</Text>
           </View>
           <Ionicons 
             name={isAccountOpen ? 'chevron-up-outline' : 'chevron-down-outline'} 
             size={18} 
-            color="#6B7280" 
+            color={theme.subText} 
           />
         </TouchableOpacity>
 
         {isAccountOpen && (
-          <View style={styles.accordionBody}>
+          <View style={[styles.accordionBody, { borderTopColor: theme.cardBorder }]}>
             {/* Profile Information ID Card preview */}
-            <View style={styles.innerCard}>
+            <View style={[styles.innerCard, { backgroundColor: theme.innerCardBg, borderColor: theme.cardBorder }]}>
               <View style={styles.idCardHeader}>
                 <View style={[styles.avatarCircleLarge, { backgroundColor: '#1E5EFF', width: 44, height: 44, borderRadius: 22 }]}>
-                  <Text style={[styles.avatarTextLarge, { fontSize: 18 }]}>{name.slice(0, 1).toUpperCase() || '👤'}</Text>
+                  <Text style={[styles.avatarTextLarge, { fontSize: getFontSize(18) }]}>{name.slice(0, 1).toUpperCase() || '👤'}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.idCardName, { color: '#111827', fontSize: 15 }]}>{name}</Text>
-                  <Text style={[styles.idCardClass, { color: '#6B7280', marginTop: 1 }]}>
+                  <Text style={[styles.idCardName, { color: theme.text, fontSize: getFontSize(15) }]}>{name}</Text>
+                  <Text style={[styles.idCardClass, { color: theme.subText, fontSize: getFontSize(11), marginTop: 1 }]}>
                     {formatAcademicSection('CS 402', year, section)}  •  {isIrregular ? 'Irregular' : 'Regular'}
                   </Text>
                 </View>
@@ -871,56 +989,56 @@ function StudentProfileScreen({ profile, onLogout }: ProfileProps) {
             </View>
 
             {/* Profile Information details (Disabled inputs) */}
-            <Text style={styles.formLabel}>Profile Information</Text>
+            <Text style={[styles.formLabel, { color: theme.subText, fontSize: getFontSize(10) }]}>{t.profileInfo}</Text>
             <TextInput
-              style={[styles.input, styles.disabledInput]}
+              style={[styles.input, styles.disabledInput, { backgroundColor: theme.disabledInputBg, color: theme.subText, fontSize: getFontSize(13), borderColor: theme.cardBorder }]}
               value={name}
               editable={false}
             />
 
             {/* Student ID */}
-            <Text style={styles.formLabel}>Student ID</Text>
+            <Text style={[styles.formLabel, { color: theme.subText, fontSize: getFontSize(10) }]}>{t.studentId}</Text>
             <TextInput
-              style={[styles.input, styles.disabledInput]}
+              style={[styles.input, styles.disabledInput, { backgroundColor: theme.disabledInputBg, color: theme.subText, fontSize: getFontSize(13), borderColor: theme.cardBorder }]}
               value={id}
               editable={false}
             />
 
             {/* University Email */}
-            <Text style={styles.formLabel}>University Email</Text>
+            <Text style={[styles.formLabel, { color: theme.subText, fontSize: getFontSize(10) }]}>{t.email}</Text>
             <TextInput
-              style={[styles.input, styles.disabledInput]}
+              style={[styles.input, styles.disabledInput, { backgroundColor: theme.disabledInputBg, color: theme.subText, fontSize: getFontSize(13), borderColor: theme.cardBorder }]}
               value={email}
               editable={false}
             />
 
             {/* Change Password */}
-            <Text style={styles.formLabel}>Security Password</Text>
+            <Text style={[styles.formLabel, { color: theme.subText, fontSize: getFontSize(10) }]}>{t.password}</Text>
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
               <TextInput
-                style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                style={[styles.input, { flex: 1, marginBottom: 0, backgroundColor: theme.cardBg, color: theme.inputText, fontSize: getFontSize(13), borderColor: theme.cardBorder }]}
                 value={isChangingPassword ? newPassword : password}
                 onChangeText={setNewPassword}
                 secureTextEntry={isChangingPassword}
                 placeholder={isChangingPassword ? 'Enter new password' : ''}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={theme.subText}
                 editable={isChangingPassword}
               />
               <TouchableOpacity style={styles.innerBtn} onPress={handleChangePassword}>
-                <Text style={styles.innerBtnText}>{isChangingPassword ? 'Confirm' : 'Change'}</Text>
+                <Text style={[styles.innerBtnText, { fontSize: getFontSize(12) }]}>{isChangingPassword ? 'Confirm' : 'Change'}</Text>
               </TouchableOpacity>
             </View>
 
             {/* Linked Devices */}
-            <Text style={styles.formLabel}>Linked Devices</Text>
-            <View style={styles.deviceDetailGroup}>
+            <Text style={[styles.formLabel, { color: theme.subText, fontSize: getFontSize(10) }]}>{t.linkedDevices}</Text>
+            <View style={[styles.deviceDetailGroup, { backgroundColor: theme.deviceDetailGroupBg, borderColor: theme.cardBorder }]}>
               <View style={styles.deviceDetailRow}>
-                <Text style={styles.deviceDetailLabel}>Active Device Signature:</Text>
-                <Text style={[styles.deviceDetailVal, { fontSize: 10.5 }]}>{hardwareId}</Text>
+                <Text style={[styles.deviceDetailLabel, { color: theme.subText, fontSize: getFontSize(11) }]}>Active Device Signature:</Text>
+                <Text style={[styles.deviceDetailVal, { color: theme.text, fontSize: getFontSize(10.5) }]}>{hardwareId}</Text>
               </View>
               <View style={styles.deviceDetailRow}>
-                <Text style={styles.deviceDetailLabel}>Hardware Status:</Text>
-                <Text style={[styles.deviceDetailVal, { color: '#22C55E', fontWeight: '800' }]}>✓ Verified & Device Locked</Text>
+                <Text style={[styles.deviceDetailLabel, { color: theme.subText, fontSize: getFontSize(11) }]}>Hardware Status:</Text>
+                <Text style={[styles.deviceDetailVal, { color: '#22C55E', fontWeight: '800', fontSize: getFontSize(11) }]}>✓ Verified & Device Locked</Text>
               </View>
             </View>
           </View>
@@ -928,34 +1046,34 @@ function StudentProfileScreen({ profile, onLogout }: ProfileProps) {
       </View>
 
       {/* ACCORDION 2: APPEARANCE */}
-      <View style={styles.accordionCard}>
+      <View style={[styles.accordionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
         <TouchableOpacity 
-          style={styles.accordionHeader} 
+          style={[styles.accordionHeader, { backgroundColor: theme.accordionHeaderBg }]} 
           onPress={() => setIsAppearanceOpen(!isAppearanceOpen)}
           activeOpacity={0.7}
         >
           <View style={styles.accordionHeaderLeft}>
             <Ionicons name="color-palette" size={24} color="#1E5EFF" style={{ marginRight: 10 }} />
-            <Text style={styles.accordionTitle}>Appearance</Text>
+            <Text style={[styles.accordionTitle, { color: theme.text, fontSize: getFontSize(14) }]}>{t.appearance}</Text>
           </View>
           <Ionicons 
             name={isAppearanceOpen ? 'chevron-up-outline' : 'chevron-down-outline'} 
             size={18} 
-            color="#6B7280" 
+            color={theme.subText} 
           />
         </TouchableOpacity>
 
         {isAppearanceOpen && (
-          <View style={styles.accordionBody}>
+          <View style={[styles.accordionBody, { borderTopColor: theme.cardBorder }]}>
             {/* Light/Dark Mode */}
-            <View style={styles.settingToggleRow}>
+            <View style={[styles.settingToggleRow, { borderBottomColor: theme.cardBorder }]}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.settingMainText}>Light / Dark Mode</Text>
-                <Text style={styles.settingSubText}>Switch app color mode layout</Text>
+                <Text style={[styles.settingMainText, { color: theme.text, fontSize: getFontSize(12.5) }]}>{t.lightDark}</Text>
+                <Text style={[styles.settingSubText, { color: theme.subText, fontSize: getFontSize(9.5) }]}>{t.lightDarkSub}</Text>
               </View>
               <Switch
-                value={darkMode}
-                onValueChange={setDarkMode}
+                value={isDarkMode}
+                onValueChange={setIsDarkMode}
                 trackColor={{ false: '#E5E7EB', true: '#1E5EFF' }}
                 thumbColor="#FFFFFF"
                 style={Platform.OS === 'web' ? { transform: [{ scale: 0.8 }] } as any : {}}
@@ -963,10 +1081,10 @@ function StudentProfileScreen({ profile, onLogout }: ProfileProps) {
             </View>
 
             {/* System Theme */}
-            <View style={styles.settingToggleRow}>
+            <View style={[styles.settingToggleRow, { borderBottomColor: theme.cardBorder }]}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.settingMainText}>System Theme</Text>
-                <Text style={styles.settingSubText}>Sync mode to match mobile OS theme</Text>
+                <Text style={[styles.settingMainText, { color: theme.text, fontSize: getFontSize(12.5) }]}>{t.systemTheme}</Text>
+                <Text style={[styles.settingSubText, { color: theme.subText, fontSize: getFontSize(9.5) }]}>{t.systemThemeSub}</Text>
               </View>
               <Switch
                 value={systemTheme}
@@ -978,26 +1096,41 @@ function StudentProfileScreen({ profile, onLogout }: ProfileProps) {
             </View>
 
             {/* App Language */}
-            <View style={styles.settingToggleRow}>
+            <View style={[styles.settingToggleRow, { borderBottomColor: theme.cardBorder }]}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.settingMainText}>App Language</Text>
-                <Text style={styles.settingSubText}>Currently configured vocabulary</Text>
+                <Text style={[styles.settingMainText, { color: theme.text, fontSize: getFontSize(12.5) }]}>{t.language}</Text>
+                <Text style={[styles.settingSubText, { color: theme.subText, fontSize: getFontSize(9.5) }]}>{t.languageSub}</Text>
               </View>
-              <View style={styles.badgeSelector}>
-                <Text style={styles.badgeSelectorText}>{language}</Text>
-              </View>
+              <TouchableOpacity
+                style={[styles.badgeSelector, { backgroundColor: theme.innerCardBg, borderColor: theme.cardBorder }]}
+                onPress={() => {
+                  Alert.alert(
+                    'App Language',
+                    'Select your preferred display language:',
+                    [
+                      { text: 'English', onPress: () => setAppLanguage('English') },
+                      { text: 'Filipino', onPress: () => setAppLanguage('Filipino') },
+                      { text: 'Spanish', onPress: () => setAppLanguage('Spanish') },
+                      { text: 'Cancel', style: 'cancel' }
+                    ]
+                  );
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.badgeSelectorText}>{appLanguage} ▾</Text>
+              </TouchableOpacity>
             </View>
 
             {/* Font Size Selector */}
-            <Text style={styles.formLabel}>Font Size</Text>
+            <Text style={[styles.formLabel, { color: theme.subText, fontSize: getFontSize(10) }]}>{t.fontSize}</Text>
             <View style={styles.fontSizeRow}>
               {(['Small', 'Medium', 'Large'] as const).map((sz) => (
                 <TouchableOpacity
                   key={sz}
-                  style={[styles.fontSizePill, fontSize === sz && styles.fontSizePillActive]}
-                  onPress={() => setFontSize(sz)}
+                  style={[styles.fontSizePill, { borderColor: theme.cardBorder, backgroundColor: theme.innerCardBg }, appFontSize === sz && styles.fontSizePillActive]}
+                  onPress={() => setAppFontSize(sz)}
                 >
-                  <Text style={[styles.fontSizeText, fontSize === sz && styles.fontSizeTextActive]}>{sz}</Text>
+                  <Text style={[styles.fontSizeText, { fontSize: getFontSize(11) }, appFontSize === sz && styles.fontSizeTextActive]}>{sz}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -1006,53 +1139,53 @@ function StudentProfileScreen({ profile, onLogout }: ProfileProps) {
       </View>
 
       {/* ACCORDION 3: PRIVACY & SECURITY */}
-      <View style={styles.accordionCard}>
+      <View style={[styles.accordionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
         <TouchableOpacity 
-          style={styles.accordionHeader} 
+          style={[styles.accordionHeader, { backgroundColor: theme.accordionHeaderBg }]} 
           onPress={() => setIsPrivacyOpen(!isPrivacyOpen)}
           activeOpacity={0.7}
         >
           <View style={styles.accordionHeaderLeft}>
             <Ionicons name="shield-checkmark" size={24} color="#1E5EFF" style={{ marginRight: 10 }} />
-            <Text style={styles.accordionTitle}>Privacy & Security</Text>
+            <Text style={[styles.accordionTitle, { color: theme.text, fontSize: getFontSize(14) }]}>{t.privacy}</Text>
           </View>
           <Ionicons 
             name={isPrivacyOpen ? 'chevron-up-outline' : 'chevron-down-outline'} 
             size={18} 
-            color="#6B7280" 
+            color={theme.subText} 
           />
         </TouchableOpacity>
 
         {isPrivacyOpen && (
-          <View style={styles.accordionBody}>
+          <View style={[styles.accordionBody, { borderTopColor: theme.cardBorder }]}>
             {/* Privacy Policy */}
             <TouchableOpacity 
-              style={styles.legalLinkRow} 
+              style={[styles.legalLinkRow, { borderBottomColor: theme.cardBorder }]} 
               onPress={() => Alert.alert('Privacy Policy', 'Your personal account info, camera selfies, and GPS coordinate checkpoints are only visible to course instructors and are deleted automatically at the end of the academic period.')}
             >
-              <Ionicons name="document-text-outline" size={18} color="#6B7280" style={{ marginRight: 8 }} />
-              <Text style={styles.legalLinkText}>Privacy Policy</Text>
-              <Ionicons name="chevron-forward-outline" size={14} color="#D1D5DB" style={{ marginLeft: 'auto' }} />
+              <Ionicons name="document-text-outline" size={18} color={theme.subText} style={{ marginRight: 8 }} />
+              <Text style={[styles.legalLinkText, { color: theme.text, fontSize: getFontSize(12.5) }]}>{t.privacyPolicy}</Text>
+              <Ionicons name="chevron-forward-outline" size={14} color={theme.subText} style={{ marginLeft: 'auto' }} />
             </TouchableOpacity>
 
             {/* Terms & Conditions */}
             <TouchableOpacity 
-              style={styles.legalLinkRow} 
+              style={[styles.legalLinkRow, { borderBottomColor: theme.cardBorder }]} 
               onPress={() => Alert.alert('Terms & Conditions', 'By checking in on Attenza, you certify that you are physically present in the designated classroom and checking in on your own locked device. Proxy check-ins are strictly prohibited.')}
             >
-              <Ionicons name="ribbon-outline" size={18} color="#6B7280" style={{ marginRight: 8 }} />
-              <Text style={styles.legalLinkText}>Terms & Conditions</Text>
-              <Ionicons name="chevron-forward-outline" size={14} color="#D1D5DB" style={{ marginLeft: 'auto' }} />
+              <Ionicons name="ribbon-outline" size={18} color={theme.subText} style={{ marginRight: 8 }} />
+              <Text style={[styles.legalLinkText, { color: theme.text, fontSize: getFontSize(12.5) }]}>{t.terms}</Text>
+              <Ionicons name="chevron-forward-outline" size={14} color={theme.subText} style={{ marginLeft: 'auto' }} />
             </TouchableOpacity>
 
             {/* Delete Account */}
             <TouchableOpacity 
-              style={styles.deleteAccountBtn} 
+              style={[styles.deleteAccountBtn, { borderColor: isDarkMode ? '#EF444450' : '#EF444420' }]} 
               onPress={handleDeleteAccount}
               activeOpacity={0.8}
             >
               <Ionicons name="trash-outline" size={18} color="#EF4444" style={{ marginRight: 6 }} />
-              <Text style={styles.deleteAccountBtnText}>Delete Account</Text>
+              <Text style={[styles.deleteAccountBtnText, { fontSize: getFontSize(13) }]}>{t.delete}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -1065,7 +1198,7 @@ function StudentProfileScreen({ profile, onLogout }: ProfileProps) {
         activeOpacity={0.8}
       >
         <Ionicons name="log-out-outline" size={18} color="#EF4444" style={{ marginRight: 6 }} />
-        <Text style={styles.logoutBtnText}>Log Out Account</Text>
+        <Text style={[styles.logoutBtnText, { fontSize: getFontSize(13) }]}>{t.logout}</Text>
       </TouchableOpacity>
 
       <View style={{ height: 40 }} />
