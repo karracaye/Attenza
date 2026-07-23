@@ -41,10 +41,10 @@ const INITIAL_EXCUSES: PendingExcuse[] = [
   {
     id: 'ex-1',
     studentId: '2023-0149',
-    studentName: 'Katrina Escoba',
+    studentName: 'Mariel Escoba',
     subjectCode: 'IT 204',
     excuseReason: 'Had a severe dental appointment extraction. Attached my clinical medical certificate.',
-    excuseAttachment: 'medical_cert_katrina.jpg',
+    excuseAttachment: 'medical_cert_mariel.jpg',
     year: '3rd Year',
     section: 'Section B',
     isIrregular: false,
