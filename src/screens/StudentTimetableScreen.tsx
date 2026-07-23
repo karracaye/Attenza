@@ -31,7 +31,7 @@ const DEFAULT_TIMETABLE: TimetableEntry[] = [
     id: 't1',
     subjectCode: 'CS 302',
     subjectName: 'Software Engineering II',
-    professorName: 'Dr. Jane Smith',
+    professorName: 'Dr. Chaliz Smith',
     roomName: 'Room 302',
     days: ['Monday', 'Wednesday', 'Friday'],
     startTime: '07:00 AM',
