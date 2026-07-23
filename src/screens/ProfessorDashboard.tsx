@@ -61,9 +61,20 @@ export default function ProfessorDashboard({
   const [timeLeft, setTimeLeft] = useState(0);
   const [rollingToken, setRollingToken] = useState('');
 
-  // Dropdown States
   const [isSubjectDropdownOpen, setIsSubjectDropdownOpen] = useState(false);
   const [isClassroomDropdownOpen, setIsClassroomDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    if (!selectedSubjectId && subjects && subjects.length > 0) {
+      setSelectedSubjectId(subjects[0].id);
+    }
+  }, [subjects, selectedSubjectId]);
+
+  useEffect(() => {
+    if (!selectedClassroomId && classrooms && classrooms.length > 0) {
+      setSelectedClassroomId(classrooms[0].id);
+    }
+  }, [classrooms, selectedClassroomId]);
   // Register custom location states
   const [isRegisterModalVisible, setIsRegisterModalVisible] = useState(false);
   const [newLocationName, setNewLocationName] = useState('');
@@ -256,7 +267,8 @@ export default function ProfessorDashboard({
             ) : (
               paginatedRecords.map((record) => {
                 const isExcused = record.status === 'EXCUSED';
-                const initials = record.studentName
+                const nameStr = record.studentName || 'Student';
+                const initials = nameStr
                   .split(' ')
                   .filter(Boolean)
                   .map(n => n[0])

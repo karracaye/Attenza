@@ -10,6 +10,7 @@ import {
   Platform,
   Alert,
   Image,
+  Share,
 } from 'react-native';
 import { AttendanceSessionLog } from '../data/mockData';
 
@@ -246,7 +247,7 @@ export default function HistoryScreen({ logs, role, studentId, isDarkMode = fals
     setIsExportModalVisible(false);
   };
 
-  const downloadFile = (content: string, filename: string, contentType: string) => {
+  const downloadFile = async (content: string, filename: string, contentType: string) => {
     if (Platform.OS === 'web') {
       const blob = new Blob([content], { type: contentType });
       const url = URL.createObjectURL(blob);
@@ -256,11 +257,18 @@ export default function HistoryScreen({ logs, role, studentId, isDarkMode = fals
       a.click();
       URL.revokeObjectURL(url);
     } else {
-      Alert.alert('Export Complete', `File downloaded successfully: \n\n${filename}`);
+      try {
+        await Share.share({
+          message: content,
+          title: filename,
+        });
+      } catch (error) {
+        Alert.alert('Sharing Error', 'Failed to share the exported file.');
+      }
     }
   };
 
-  const printPDF = (html: string) => {
+  const printPDF = async (html: string) => {
     if (Platform.OS === 'web') {
       const printWindow = window.open('', '_blank');
       if (printWindow) {
@@ -270,7 +278,14 @@ export default function HistoryScreen({ logs, role, studentId, isDarkMode = fals
         printWindow.print();
       }
     } else {
-      Alert.alert('PDF Export Complete', 'Generated print document preview.');
+      try {
+        await Share.share({
+          message: html,
+          title: 'attendance_report.html',
+        });
+      } catch (error) {
+        Alert.alert('Sharing Error', 'Failed to share the PDF print document.');
+      }
     }
   };
 

@@ -11,6 +11,7 @@ import {
   Platform,
   ActivityIndicator,
   Switch,
+  Modal,
 } from 'react-native';
 import { ActiveSession, Classroom, StudentCheckInRecord, Subject, getRollingTokenForTime } from '../data/mockData';
 import { getDeviceHardwareId } from '../services/api';
@@ -70,6 +71,8 @@ export default function StudentCheckIn({
   const [selfieVerified, setSelfieVerified] = useState(false);
   const [capturing, setCapturing] = useState(false);
   const [selfiePath, setSelfiePath] = useState('');
+  const [isMockCameraVisible, setIsMockCameraVisible] = useState(false);
+  const [showFlash, setShowFlash] = useState(false);
 
   // Step 3: GPS State
   const [gpsVerified, setGpsVerified] = useState(false);
@@ -136,6 +139,25 @@ export default function StudentCheckIn({
     ? classroomCoords.find(c => c.name === activeSession.classroomName)
     : null;
 
+  const getSimulatedLocations = () => {
+    const list = [...SIMULATED_LOCATIONS];
+    if (activeSession) {
+      const activeLat = activeSession.latitude !== undefined ? activeSession.latitude : (activeClassroom?.latitude || 14.59952);
+      const activeLng = activeSession.longitude !== undefined ? activeSession.longitude : (activeClassroom?.longitude || 120.98422);
+      
+      // Prevent duplicates if already in list
+      if (!list.some(l => l.lat === activeLat && l.lng === activeLng)) {
+        list.push({
+          id: 'active_classroom',
+          label: `🏫 Classroom: ${activeSession.classroomName}`,
+          lat: activeLat,
+          lng: activeLng
+        });
+      }
+    }
+    return list;
+  };
+
   // Step 1: QR Code Match
   const handleVerifyQR = () => {
     if (!activeSession) return;
@@ -165,6 +187,17 @@ export default function StudentCheckIn({
   // Step 2: Real Selfie Verification (Launch Camera)
   const handleCaptureSelfie = async () => {
     setCapturing(true);
+    console.log('[StudentCheckIn] Platform.OS:', Platform.OS);
+    console.log('[StudentCheckIn] Platform.constants:', JSON.stringify(Platform.constants));
+
+    // Auto-detect iOS Simulator to bypass native camera and show the custom mock viewfinder modal
+    const isSimulator = Platform.OS === 'ios' && (Platform.constants as any).model === 'Simulator';
+    if (isSimulator) {
+      setCapturing(false);
+      setIsMockCameraVisible(true);
+      return;
+    }
+
     try {
       const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
       if (!cameraStatus.granted) {
@@ -189,7 +222,7 @@ export default function StudentCheckIn({
       }
     } catch (error) {
       console.error('Error capturing selfie:', error);
-      Alert.alert('Capture Failed', 'An error occurred while launching the camera.');
+      setIsMockCameraVisible(true);
     } finally {
       setCapturing(false);
     }
@@ -251,7 +284,7 @@ export default function StudentCheckIn({
     setCheckingGps(true);
     setTimeout(() => {
       setCheckingGps(false);
-      const studentLoc = SIMULATED_LOCATIONS.find(l => l.id === selectedLocId) || SIMULATED_LOCATIONS[0];
+      const studentLoc = getSimulatedLocations().find(l => l.id === selectedLocId) || getSimulatedLocations()[0];
       
       if (activeSession.isOnline) {
         setGpsDistance(0.0);
@@ -284,13 +317,15 @@ export default function StudentCheckIn({
       return;
     }
 
-    const studentLoc = SIMULATED_LOCATIONS.find(l => l.id === selectedLocId) || SIMULATED_LOCATIONS[0];
+    const studentLoc = getSimulatedLocations().find(l => l.id === selectedLocId) || getSimulatedLocations()[0];
     const elapsedMs = Date.now() - new Date(activeSession.createdAt).getTime();
     const isLate = elapsedMs > 3 * 60000; // Automatically LATE if timing in after 3 minutes (180 seconds)
     const status = isLate ? 'LATE' : 'PRESENT';
     setCheckInStatus(status);
 
     const newRecord: StudentCheckInRecord = {
+      id: `checkin_${Date.now()}`,
+      sessionId: activeSession.id,
       studentId: studentProfile.studentId,
       studentName: studentProfile.studentName,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -333,6 +368,8 @@ export default function StudentCheckIn({
       setSubmittingExcuse(false);
       setCheckInStatus('EXCUSED');
       const newRecord: StudentCheckInRecord = {
+        id: `checkin_${Date.now()}`,
+        sessionId: activeSession.id,
         studentId: studentProfile.studentId,
         studentName: studentProfile.studentName,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -410,7 +447,7 @@ export default function StudentCheckIn({
     }
   };
 
-  const studentLoc = SIMULATED_LOCATIONS.find(l => l.id === selectedLocId) || SIMULATED_LOCATIONS[0];
+  const studentLoc = getSimulatedLocations().find(l => l.id === selectedLocId) || getSimulatedLocations()[0];
 
   // RENDER COMPONENT WHEN NO CLASS SESSION IS ACTIVE (Submit General Excuse Letter Portal)
   if (!activeSession) {
@@ -762,6 +799,14 @@ export default function StudentCheckIn({
                     {selfiePath ? 'Retake Live Selfie' : 'Capture Live Selfie'}
                   </Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.verifyBtn, { marginTop: 10, backgroundColor: '#4B5563' }]}
+                  onPress={() => setIsMockCameraVisible(true)}
+                  disabled={capturing}
+                >
+                  <Text style={styles.verifyBtnText}>Open Simulator Viewfinder 💻</Text>
+                </TouchableOpacity>
               </View>
             )}
 
@@ -819,7 +864,7 @@ export default function StudentCheckIn({
                 {/* Simulated Locations Selectors */}
                 <Text style={[styles.simulatorTitle, { color: colors.text }]}>Test Location Simulator</Text>
                 <View style={styles.locationOptionList}>
-                  {SIMULATED_LOCATIONS.map((loc) => (
+                  {getSimulatedLocations().map((loc) => (
                     <TouchableOpacity
                       key={loc.id}
                       style={[styles.locOptionBtn, { backgroundColor: isDarkMode ? '#11182740' : '#FAFBFC', borderColor: colors.border }, selectedLocId === loc.id && styles.locOptionBtnActive]}
@@ -979,6 +1024,74 @@ export default function StudentCheckIn({
           </View>
         </ScrollView>
       )}
+      {/* Simulator Mock Camera Shutter Modal */}
+      <Modal
+        visible={isMockCameraVisible}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setIsMockCameraVisible(false)}
+      >
+        <View style={styles.cameraContainer}>
+          {/* Top Bar Controls */}
+          <View style={styles.cameraTopBar}>
+            <TouchableOpacity onPress={() => setIsMockCameraVisible(false)} style={styles.cameraCloseBtn}>
+              <Ionicons name="chevron-back" size={24} color="#ffffff" />
+            </TouchableOpacity>
+            <Text style={styles.cameraTitle}>PHOTO VERIFICATION</Text>
+            <View style={{ width: 40 }} />
+          </View>
+
+          {/* Viewfinder Camera Feed area */}
+          <View style={styles.viewfinderContainer}>
+            <Image
+              source={{ uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80' }}
+              style={styles.cameraFeedImage}
+              resizeMode="cover"
+            />
+            {/* Viewfinder Framing Guidelines (Green Oval) */}
+            <View style={styles.viewfinderFrameOval} />
+            <Text style={styles.viewfinderInstruction}>Align your face within the frame</Text>
+          </View>
+
+          {/* Bottom Bar Shutter controls */}
+          <View style={styles.cameraBottomBar}>
+            {/* Thumbnail */}
+            <View style={styles.cameraThumbnailCircle}>
+              <Image
+                source={{ uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80' }}
+                style={styles.cameraThumbnailImg}
+              />
+            </View>
+
+            {/* Large Shutter Button */}
+            <TouchableOpacity
+              style={styles.cameraShutterOuter}
+              onPress={() => {
+                setShowFlash(true);
+                setTimeout(() => {
+                  setShowFlash(false);
+                  setIsMockCameraVisible(false);
+                  setSelfiePath('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80');
+                  setSelfieVerified(true);
+                  Alert.alert('Selfie Verified', 'Face verification completed successfully.');
+                  setStep(3);
+                }, 300);
+              }}
+              activeOpacity={0.8}
+            >
+              <View style={styles.cameraShutterInner} />
+            </TouchableOpacity>
+
+            {/* swap icon */}
+            <TouchableOpacity style={styles.cameraSwapBtn} disabled={true}>
+              <Ionicons name="camera-reverse-outline" size={24} color="#666666" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Shutter Flash Animation overlay */}
+          {showFlash && <View style={styles.cameraFlashOverlay} />}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1762,5 +1875,117 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#111827',
     marginBottom: 8,
+  },
+  // Simulator Mock Camera Viewfinder Styles
+  cameraContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+    justifyContent: 'space-between',
+    paddingBottom: Platform.OS === 'ios' ? 36 : 20,
+  },
+  cameraTopBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    height: Platform.OS === 'ios' ? 100 : 70,
+    backgroundColor: '#000000',
+  },
+  cameraCloseBtn: {
+    padding: 8,
+  },
+  cameraTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: 2,
+  },
+  viewfinderContainer: {
+    flex: 1,
+    backgroundColor: '#111827',
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  cameraFeedImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+  },
+  viewfinderFrameOval: {
+    width: 250,
+    height: 330,
+    borderWidth: 2,
+    borderColor: '#22C55E',
+    borderRadius: 125,
+    borderStyle: 'dashed',
+    backgroundColor: 'transparent',
+    shadowColor: '#22C55E',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 10,
+  },
+  viewfinderInstruction: {
+    position: 'absolute',
+    bottom: 24,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#ffffff',
+    backgroundColor: '#00000080',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  cameraBottomBar: {
+    height: 120,
+    backgroundColor: '#000000',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingHorizontal: 30,
+  },
+  cameraThumbnailCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#333333',
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#ffffff50',
+  },
+  cameraThumbnailImg: {
+    width: '100%',
+    height: '100%',
+  },
+  cameraShutterOuter: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    borderWidth: 4,
+    borderColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  cameraShutterInner: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#ffffff',
+  },
+  cameraSwapBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cameraFlashOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#ffffff',
+    zIndex: 9999,
   },
 });

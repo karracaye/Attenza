@@ -29,6 +29,8 @@ export interface ActiveSession {
 }
 
 export interface StudentCheckInRecord {
+  id?: string;
+  sessionId?: string;
   studentId: string;
   studentName: string;
   timestamp: string;

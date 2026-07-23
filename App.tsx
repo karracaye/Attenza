@@ -189,10 +189,24 @@ export default function App() {
         const records = await getLiveSessionRecords(activeSession.id);
         if (records) {
           const normalized = records.map(r => ({
-            ...r,
-            qrVerified: !!r.qr_verified,
-            selfieVerified: !!r.selfie_verified,
-            gpsVerified: !!r.gps_verified,
+            id: r.id,
+            sessionId: r.session_id || r.sessionId,
+            studentId: r.student_id || r.studentId,
+            studentName: r.student_name || r.studentName,
+            year: r.year,
+            section: r.section,
+            isIrregular: r.is_irregular !== undefined ? !!r.is_irregular : !!r.isIrregular,
+            status: r.status,
+            timestamp: r.timestamp,
+            qrVerified: r.qr_verified !== undefined ? !!r.qr_verified : !!r.qrVerified,
+            selfieVerified: r.selfie_verified !== undefined ? !!r.selfie_verified : !!r.selfieVerified,
+            gpsVerified: r.gps_verified !== undefined ? !!r.gps_verified : !!r.gpsVerified,
+            distanceMeters: r.distance_meters !== undefined ? r.distance_meters : r.distanceMeters,
+            latitude: r.latitude,
+            longitude: r.longitude,
+            isRemoteStandpoint: r.is_remote_standpoint !== undefined ? !!r.is_remote_standpoint : !!r.isRemoteStandpoint,
+            remoteLocationName: r.remote_location_name || r.remoteLocationName,
+            remoteLocationReason: r.remote_location_reason || r.remoteLocationReason,
             verified: true,
           }));
           setLiveRecords(normalized);
@@ -245,7 +259,7 @@ export default function App() {
     longitude?: number
   ) => {
     const subject = professorSubjects.find(s => s.id === subjectId);
-    const classroom = INITIAL_CLASSROOMS.find(c => c.id === classroomId);
+    const classroom = classrooms.find(c => c.id === classroomId);
 
     if (!subject || !classroom) return;
 
@@ -462,8 +476,18 @@ export default function App() {
   };
 
   // Switch role and update view
-  const toggleRole = () => {
-    setRole(role === 'student' ? 'professor' : 'student');
+  const toggleRole = async () => {
+    const nextRole = role === 'student' ? 'professor' : 'student';
+    setRole(nextRole);
+    if (nextRole === 'professor') {
+      const profId = currentUser && currentUser.role === 'professor' ? currentUser.usernameId : 'prof1';
+      try {
+        const subjectsList = await getProfessorSubjects(profId);
+        setProfessorSubjects(subjectsList);
+      } catch (err) {
+        console.warn('Failed to load professor subjects on toggle:', err);
+      }
+    }
   };
 
   // Render Student Profile View (Settings Panel)
@@ -488,7 +512,7 @@ export default function App() {
         case 'dashboard':
           return (
             <ProfessorDashboardScreen
-              currentUserName={currentUser?.name || 'Dr. Jane Smith'}
+              currentUserName={currentUser && currentUser.role === 'professor' ? currentUser.name : 'Dr. Jane Smith'}
               onNavigateToLauncher={() => setProfessorTab('launcher')}
               onNavigateToSubjects={() => setProfessorTab('subjects')}
               onNavigateToHistory={() => setProfessorTab('history')}
@@ -535,7 +559,9 @@ export default function App() {
               setAppLanguage={setAppLanguage}
               appFontSize={appFontSize}
               setAppFontSize={setAppFontSize}
-              currentUserName={currentUser?.name || 'Dr. Jane Smith'}
+              currentUserName={currentUser && currentUser.role === 'professor' ? currentUser.name : 'Dr. Jane Smith'}
+              currentUserEmail={currentUser && currentUser.role === 'professor' ? currentUser.email : 'professor@university.edu'}
+              currentUserId={currentUser && currentUser.role === 'professor' ? currentUser.usernameId : 'prof1'}
               historyLogs={historyLogs}
             />
           );
@@ -623,7 +649,13 @@ export default function App() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, position: 'relative', zIndex: 1000 }}>
                 <TouchableOpacity style={[styles.roleTogglePill, { backgroundColor: isDarkMode ? '#374151' : '#F3F4F6' }]} onPress={toggleRole}>
                   <Text style={[styles.roleToggleText, { color: isDarkMode ? '#E5E7EB' : '#374151' }]}>
-                    Role: <Text style={styles.roleTextHighlight}>{currentUser?.name || role.toUpperCase()}</Text>
+                    Role: <Text style={styles.roleTextHighlight}>
+                      {currentUser 
+                        ? (role === currentUser.role 
+                          ? currentUser.name 
+                          : (role === 'professor' ? 'Dr. Jane Smith' : (studentProfile?.studentName || 'Katrina Santillan')))
+                        : role.toUpperCase()}
+                    </Text>
                   </Text>
                 </TouchableOpacity>
 

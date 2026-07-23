@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,9 @@ interface ProfileProps {
   appFontSize: 'Small' | 'Medium' | 'Large';
   setAppFontSize: (sz: 'Small' | 'Medium' | 'Large') => void;
   currentUserName: string;
+  currentUserEmail?: string;
+  currentUserId?: string;
+  currentUserDept?: string;
   historyLogs: AttendanceSessionLog[];
 }
 
@@ -34,6 +37,9 @@ export default function ProfessorProfileScreen({
   appFontSize,
   setAppFontSize,
   currentUserName,
+  currentUserEmail,
+  currentUserId,
+  currentUserDept,
   historyLogs = [],
 }: ProfileProps) {
   // Calculate dynamic metrics from historyLogs
@@ -79,9 +85,25 @@ export default function ProfessorProfileScreen({
 
   // Account settings
   const [facultyName, setFacultyName] = useState(currentUserName);
-  const [facultyId] = useState('2018-9901');
-  const [email] = useState('jane.smith@university.edu.ph');
-  const [dept] = useState('College of Information Technology');
+
+  useEffect(() => {
+    setFacultyName(currentUserName);
+  }, [currentUserName]);
+  const [facultyId, setFacultyId] = useState(currentUserId || '2018-9901');
+  const [email, setEmail] = useState(currentUserEmail || 'jane.smith@university.edu.ph');
+  const [dept, setDept] = useState(currentUserDept || 'College of Information Technology');
+
+  useEffect(() => {
+    if (currentUserId) setFacultyId(currentUserId);
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (currentUserEmail) setEmail(currentUserEmail);
+  }, [currentUserEmail]);
+
+  useEffect(() => {
+    if (currentUserDept) setDept(currentUserDept);
+  }, [currentUserDept]);
   
   // Password states
   const [password, setPassword] = useState('••••••••••••');
